@@ -1,0 +1,36 @@
+From: John Johansen <john@jjmx.net>
+Date: Thu, 17 Feb 2022 09:16:20 +0000
+Subject: Merge Update apache2-common so that other processes can trace the
+ hats that include...
+
+Update apache2-common so that other processes can trace the hats that include this file. The main `usr.sbin.apache2` profile includes `abstractions/base` which has these lines in it, which is why `ss -tnlp` sometimes fails and sometimes works.
+
+See also: [Debian Bug #1003153](https://bugs.debian.org/1003153) for more details about how this occurs.
+
+Fixes: https://bugs.debian.org/1003153
+MR: https://gitlab.com/apparmor/apparmor/-/merge_requests/852
+Approved-by: John Johansen <john@jjmx.net>
+Merged-by: John Johansen <john@jjmx.net>
+
+(cherry picked from commit 6fa2d528e97f9d2449a9a190ad081c632f7c7555)
+
+071935b9 Update apache2-common so that other processes can trace the hats that include...
+---
+ profiles/apparmor.d/abstractions/apache2-common | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/profiles/apparmor.d/abstractions/apache2-common b/profiles/apparmor.d/abstractions/apache2-common
+index d3f9224..e6bcc5e 100644
+--- a/profiles/apparmor.d/abstractions/apache2-common
++++ b/profiles/apparmor.d/abstractions/apache2-common
+@@ -6,6 +6,10 @@
+ 
+   include <abstractions/nameservice>
+ 
++  # Allow other processes to read our /proc entries
++  ptrace (readby),
++  # Allow other processes to trace us by default
++  ptrace (tracedby),
+   # Allow unconfined processes to send us signals by default
+   signal (receive) peer=unconfined,
+   # Allow apache to send us signals by default

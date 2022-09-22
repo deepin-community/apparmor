@@ -1,0 +1,46 @@
+From: John Johansen <john@jjmx.net>
+Date: Mon, 23 May 2022 22:35:59 +0000
+Subject: Merge Update for the mesa abstraction
+
+I noticed that some apps return the following errors when launched:
+
+```
+  kernel: audit: type=1400 audit(1651244478.255:5501): apparmor="DENIED" operation="open" profile="some_app" name="/sys/devices/pci0000:00/0000:00:02.0/revision" pid=1877976 comm="some_app" requested_mask="r" denied_mask="r" fsuid=1000 ouid=0
+  kernel: audit: type=1400 audit(1651244478.255:5502): apparmor="DENIED" operation="open" profile="some_app" name="/sys/devices/pci0000:00/0000:00:02.0/config" pid=1877976 comm="some_app" requested_mask="r" denied_mask="r" fsuid=1000 ouid=0
+```
+
+Blocking the files results in the following errors when the app is executed in a terminal:
+
+```
+  MESA: error: Failed to query drm device.
+  libGL error: failed to create dri screen
+  libGL error: failed to load driver: crocus
+  MESA: error: Failed to query drm device.
+  libGL error: failed to create dri screen
+  libGL error: failed to load driver: crocus
+```
+
+Since they have something to do with MESA, I think the mesa abstraction should
+be updated to fix the issue.
+
+MR: https://gitlab.com/apparmor/apparmor/-/merge_requests/879
+Approved-by: John Johansen <john@jjmx.net>
+Merged-by: John Johansen <john@jjmx.net>
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ profiles/apparmor.d/abstractions/mesa | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/profiles/apparmor.d/abstractions/mesa b/profiles/apparmor.d/abstractions/mesa
+index 11cb40d..381c12f 100644
+--- a/profiles/apparmor.d/abstractions/mesa
++++ b/profiles/apparmor.d/abstractions/mesa
+@@ -10,6 +10,8 @@
+   # (src/intel/perf/gen_perf.c, load_oa_metrics())
+   @{PROC}/sys/dev/i915/perf_stream_paranoid r,
+ 
++  @{sys}/devices/pci[0-9]*/**/{revision,config} r,
++
+   # User files
+   owner @{HOME}/.cache/ w, # if user clears all caches
+   owner @{HOME}/.cache/mesa_shader_cache/ rw,

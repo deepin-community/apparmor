@@ -1,0 +1,70 @@
+From: John Johansen <john.johansen@canonical.com>
+Date: Fri, 2 Jul 2021 10:35:21 -0700
+Subject: parser: move ifdefs for capabilities to single common file
+
+Unfortunately the parser was doing ifdef checks for capabilities
+in two places. Move all the capability ifdefs into capability.h
+
+MR: https://gitlab.com/apparmor/apparmor/-/merge_requests/768
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+Acked-by: Georgia Garcia  <georgia.garcia@canonical.com>
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ parser/capability.h  | 16 ++++++++++++++++
+ parser/parser_yacc.y | 14 --------------
+ 2 files changed, 16 insertions(+), 14 deletions(-)
+
+diff --git a/parser/capability.h b/parser/capability.h
+index 23edf7c..3f65613 100644
+--- a/parser/capability.h
++++ b/parser/capability.h
+@@ -19,8 +19,24 @@
+ #ifndef __AA_CAPABILITY_H
+ #define __AA_CAPABILITY_H
+ 
++#include <linux/capability.h>
++
+ #define NO_BACKMAP_CAP 0xff
+ 
++
++#ifndef CAP_AUDIT_WRITE
++#define CAP_AUDIT_WRITE 29
++#endif
++#ifndef CAP_AUDIT_CONTROL
++#define CAP_AUDIT_CONTROL 30
++#endif
++#ifndef CAP_SETFCAP
++#define CAP_SETFCAP	     31
++#endif
++#ifndef CAP_MAC_OVERRIDE
++#define CAP_MAC_OVERRIDE     32
++#endif
++
+ #ifndef CAP_PERFMON
+ #define CAP_PERFMON 38
+ #endif
+diff --git a/parser/parser_yacc.y b/parser/parser_yacc.y
+index 511f8a9..f317556 100644
+--- a/parser/parser_yacc.y
++++ b/parser/parser_yacc.y
+@@ -44,20 +44,6 @@
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
+ 
+-#include <linux/capability.h>
+-
+-#ifndef CAP_AUDIT_WRITE
+-#define CAP_AUDIT_WRITE 29
+-#endif
+-#ifndef CAP_AUDIT_CONTROL
+-#define CAP_AUDIT_CONTROL 30
+-#endif
+-#ifndef CAP_SETFCAP
+-#define CAP_SETFCAP	     31
+-#endif
+-#ifndef CAP_MAC_OVERRIDE
+-#define CAP_MAC_OVERRIDE     32
+-#endif
+ 
+ #define CIDR_32 htonl(0xffffffff)
+ #define CIDR_24 htonl(0xffffff00)

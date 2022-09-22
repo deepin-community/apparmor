@@ -1,0 +1,22 @@
+upstream-commit-8a21472175501823303a8af270bd38a60ff4ac9c-test-suite-compatibility-with-python-3.10.patch
+upstream-commit-b27a5b0cab14fd1fea29023d6ace45d623ba6594-apache2-common-trace.patch
+upstream-commit-bc952a5c85775748de99411b5adbab4d99e7dcef-fix-build-with-lto.patch
+upstream-commit-9799fbde997820bb12a49e292356f7a6ce12e972-gtk4.patch
+upstream-commit-9b72afe9c33f0af9a47bd1dbf7bbc8d5791c59a9-machined-names.patch
+upstream-commit-59c8d43ceca7c473017cc1869f49250c6ae21e43-factorize-ifdefs.patch
+upstream-commit-215b5de1316397f297068c45d5e8f1402cff3ef3-gcc-13.patch
+upstream-commit-8890dbcedcf09f578af6ab7afaf454f421db8ae3-mesa.patch
+debian/add-debian-integration-to-lighttpd.patch
+debian/libapparmor-layout-deb.patch
+debian/etc-writable.patch
+debian/allow-access-to-ibus-socket.patch
+debian/Enable-writing-cache.patch
+debian/Make-the-systemd-unit-a-no-op-in-containers-with-no-inter.patch
+debian/smbd-include-snippet-generated-at-runtime.patch
+debian-only/pin-feature-set.patch
+debian-only/aa-notify-point-to-Debian-documentation.patch
+debian-only/Document-which-AppArmor-features-are-not-supported-on-Deb.patch
+# ubuntu/communitheme-snap-support.patch
+# ubuntu/mimeinfo-snap-support.patch
+# ubuntu/profiles-grant-access-to-systemd-resolved.patch
+# ubuntu/enable-pinning-of-pre-AppArmor-3.x-poli.patch

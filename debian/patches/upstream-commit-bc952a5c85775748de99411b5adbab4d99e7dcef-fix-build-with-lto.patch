@@ -1,0 +1,35 @@
+From: Georgia Garcia <georgia.garcia@canonical.com>
+Date: Thu, 17 Feb 2022 17:09:13 +0000
+Subject: Merge parser: fix building with link time optimization (lto)
+
+Libapparmor was fixed for lto builds on commit 7cde91f5 but
+the parser was also failing due to the same reasons when lto
+was enabled.
+
+Fixes: https://gitlab.com/apparmor/apparmor/-/issues/214
+Signed-off-by: Georgia Garcia <georgia.garcia@canonical.com>
+
+Closes #214
+MR: https://gitlab.com/apparmor/apparmor/-/merge_requests/851
+Acked-by: Approved-by: John Johansen <john@jjmx.net>
+Merged-by: Georgia Garcia <georgia.garcia@canonical.com>
+
+(cherry picked from commit 5001431cdfc7ff8f5196d9e1b789881c2f50544d)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+---
+ parser/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/parser/Makefile b/parser/Makefile
+index d7966a1..68bc987 100644
+--- a/parser/Makefile
++++ b/parser/Makefile
+@@ -60,7 +60,7 @@ WARNINGS = -Wall
+ CXX_WARNINGS = ${WARNINGS} ${EXTRA_WARNINGS}
+ CPP_WARNINGS =
+ ifndef CFLAGS
+-CFLAGS	= -g -O2 -pipe
++CFLAGS	= -g -O2 -pipe -flto-partition=none
+ 
+ ifdef DEBUG
+ CFLAGS += -pg -D DEBUG
