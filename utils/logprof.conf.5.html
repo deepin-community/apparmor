@@ -57,33 +57,33 @@
 
 <h1 id="EXAMPLE">EXAMPLE</h1>
 
-<pre><code>  [qualifiers]
-    # things will very likely be painfully broken if bash has it&#39;s own profile
-    /bin/bash  = iu
+<pre><code>[qualifiers]
+  # things will very likely be painfully broken if bash has it&#39;s own profile
+  /bin/bash  = iu
 
-    # mount doesn&#39;t work if it&#39;s confined
-    /bin/mount = u
+  # mount doesn&#39;t work if it&#39;s confined
+  /bin/mount = u
 
-    # these helper utilities should inherit the parent profile and
-    # shouldn&#39;t have their own profiles
-    /bin/awk   = i
-    /bin/grep  = i
-    /bin/sed   = i
+  # these helper utilities should inherit the parent profile and
+  # shouldn&#39;t have their own profiles
+  /bin/awk   = i
+  /bin/grep  = i
+  /bin/sed   = i
 
-  [defaulthat]
-    /usr/sbin/sshd           = EXEC
-    /usr/sbin/httpd2         = DEFAULT_URI
-    /usr/sbin/httpd2-prefork = DEFAULT_URI
+[defaulthat]
+  /usr/sbin/sshd           = EXEC
+  /usr/sbin/httpd2         = DEFAULT_URI
+  /usr/sbin/httpd2-prefork = DEFAULT_URI
 
-  [globs]
-    # /foo/bar/lib/libbaz.so -&gt; /foo/bar/lib/lib*
-    /lib/lib[^\/]+so[^\/]*$  = /lib/lib*so*
+[globs]
+  # /foo/bar/lib/libbaz.so -&gt; /foo/bar/lib/lib*
+  /lib/lib[^\/]+so[^\/]*$  = /lib/lib*so*
 
-    # strip kernel version numbers from kernel module accesses
-    ^/lib/modules/[^\/]+\/   = /lib/modules/*/
+  # strip kernel version numbers from kernel module accesses
+  ^/lib/modules/[^\/]+\/   = /lib/modules/*/
 
-    # strip pid numbers from /proc accesses
-    ^/proc/\d+/              = /proc/*/</code></pre>
+  # strip pid numbers from /proc accesses
+  ^/proc/\d+/              = /proc/*/</code></pre>
 
 <h1 id="BUGS">BUGS</h1>
 

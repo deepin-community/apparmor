@@ -105,22 +105,22 @@
 
 <p>System-wide configuration for <b>aa-notify</b> is done via /etc/apparmor/notify.conf:</p>
 
-<pre><code>  # set to &#39;yes&#39; to enable AppArmor DENIED notifications
-  show_notifications=&quot;yes&quot;
+<pre><code># set to &#39;yes&#39; to enable AppArmor DENIED notifications
+show_notifications=&quot;yes&quot;
 
-  # only people in use_group can use aa-notify
-  use_group=&quot;admin&quot;
+# only people in use_group can use aa-notify
+use_group=&quot;admin&quot;
 
-  # OPTIONAL - custom notification message body
-  message_body=&quot;This is a custom notification message.&quot;
+# OPTIONAL - custom notification message body
+message_body=&quot;This is a custom notification message.&quot;
 
-  # OPTIONAL - custom notification message footer
-  message_footer=&quot;For more information visit https://foo.com&quot;</code></pre>
+# OPTIONAL - custom notification message footer
+message_footer=&quot;For more information visit https://foo.com&quot;</code></pre>
 
 <p>Per-user configuration is done via $XDG_CONFIG_HOME/apparmor/notify.conf (or the deprecated ~/.apparmor/notify.conf if it exists):</p>
 
-<pre><code>  # set to &#39;yes&#39; to enable AppArmor DENIED notifications
-  show_notifications=&quot;yes&quot;</code></pre>
+<pre><code># set to &#39;yes&#39; to enable AppArmor DENIED notifications
+show_notifications=&quot;yes&quot;</code></pre>
 
 <h1 id="BUGS">BUGS</h1>
 

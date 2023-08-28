@@ -1,8 +1,53 @@
-apparmor (3.0.4-3) UNRELEASED; urgency=medium
+apparmor (3.0.8-3) unstable; urgency=medium
 
-  * update
+  * Cherry-pick a few small, targeted fixes from upstream 3.0 branch
 
- -- Debian AppArmor Team <pkg-apparmor-team@lists.alioth.debian.org>  Wed, 27 Jul 2022 15:12:40 +0800
+ -- intrigeri <intrigeri@debian.org>  Tue, 14 Feb 2023 11:49:15 +0000
+
+apparmor (3.0.8-2) unstable; urgency=medium
+
+  * Only pin the policy ABI, not the kernel ABI.
+    This brings back the desired behavior that we had on Bullseye.
+    Fixes regression introduced in 3.0.3-1.
+  * Drop obsolete dependency on lsb-base: it's transitional
+    and provided by sysvinit-utils, which is essential
+
+ -- intrigeri <intrigeri@debian.org>  Wed, 18 Jan 2023 11:10:22 +0000
+
+apparmor (3.0.8-1) unstable; urgency=medium
+
+  * New upstream release
+  * debian/watch: only track the 3.0 series for now
+  * Add upstream patch to fix test suite
+
+ -- intrigeri <intrigeri@debian.org>  Sat, 10 Dec 2022 17:54:51 +0000
+
+apparmor (3.0.7-1) unstable; urgency=medium
+
+  * New upstream release
+
+ -- intrigeri <intrigeri@debian.org>  Tue, 16 Aug 2022 14:09:22 +0000
+
+apparmor (3.0.6-1) unstable; urgency=medium
+
+  * New upstream release (Closes: #1015354)
+  * Drop patch that was applied upstream
+  * Enable LTO
+  * Declare compliance with Policy 4.6.1
+
+ -- intrigeri <intrigeri@debian.org>  Tue, 02 Aug 2022 09:15:54 +0000
+
+apparmor (3.0.5-1) unstable; urgency=medium
+
+  * New upstream release
+  * Drop patches that were applied upstream
+  * Drop profile-load script: part of upstream 3.0.5
+  * Install newly upstreamed aa-notify.desktop instead of the custom Debian one
+  * Rename debian/master branch to debian/unstable
+  * New patch, to fix new upstream "dirtest" test
+  * Install new samba-* profiles
+
+ -- intrigeri <intrigeri@debian.org>  Mon, 25 Jul 2022 13:46:44 +0000
 
 apparmor (3.0.4-3) unstable; urgency=medium
 

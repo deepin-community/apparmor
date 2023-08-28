@@ -27,16 +27,15 @@ Build-Depends: apache2-dev,
                python3-all-dev:any,
                python3-setuptools,
                swig
-Standards-Version: 4.6.0.1
-Vcs-Browser: https://salsa.debian.org/apparmor-team/apparmor/tree/debian/master
-Vcs-Git: https://salsa.debian.org/apparmor-team/apparmor.git -b debian/master
+Standards-Version: 4.6.1
+Vcs-Browser: https://salsa.debian.org/apparmor-team/apparmor/tree/debian/unstable
+Vcs-Git: https://salsa.debian.org/apparmor-team/apparmor.git -b debian/unstable
 Homepage: https://apparmor.net/
 Rules-Requires-Root: no
 
 Package: apparmor
 Architecture: linux-any
 Depends: debconf,
-         lsb-base,
          ${misc:Depends},
          ${shlibs:Depends}
 Suggests: apparmor-profiles-extra,

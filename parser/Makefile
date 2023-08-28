@@ -70,6 +70,8 @@ CFLAGS = -g -pg -fprofile-arcs -ftest-coverage
 endif
 endif #CFLAGS
 
+CFLAGS	+= -flto-partition=none
+
 EXTRA_CXXFLAGS = ${CFLAGS} ${CPPFLAGS} ${CXX_WARNINGS} -std=gnu++0x
 EXTRA_CFLAGS = ${EXTRA_CXXFLAGS} ${CPP_WARNINGS}
 
@@ -384,11 +386,11 @@ DISTRO=$(shell if [ -f /etc/slackware-version ] ; then \
 	       elif [ -f /etc/debian_version ] ; then \
 	         echo debian ;\
 	       elif which rpm > /dev/null ; then \
-	         if [ "$(rpm --eval '0%{?suse_version}')" != "0" ] ; then \
+	         if [ "$$(rpm --eval '0%{?suse_version}')" != "0" ] ; then \
 	             echo suse ;\
-	         elif [ "$(rpm --eval '%{_host_vendor}')" = redhat ] ; then \
+	         elif [ "$$(rpm --eval '%{_host_vendor}')" = redhat ] ; then \
 	            echo rhel4 ;\
-	         elif [ "$(rpm --eval '0%{?fedora}')" != "0" ] ; then \
+	         elif [ "$$(rpm --eval '0%{?fedora}')" != "0" ] ; then \
 	            echo rhel4 ;\
 	         else \
 	            echo unknown ;\
@@ -419,6 +421,7 @@ install-indep: indep
 	install -m 755 -d ${DESTDIR}/var/lib/apparmor
 	install -m 755 -d $(APPARMOR_BIN_PREFIX)
 	install -m 755 rc.apparmor.functions $(APPARMOR_BIN_PREFIX)
+	install -m 755 profile-load $(APPARMOR_BIN_PREFIX)
 	$(MAKE) -C po install NAME=${NAME} DESTDIR=${DESTDIR}
 	$(MAKE) install_manpages DESTDIR=${DESTDIR}
 
