@@ -1,6 +1,5 @@
 debian/apport/source_apparmor.py /usr/share/apport/package-hooks/
 debian/features /usr/share/apparmor-features/
-debian/lib/apparmor/profile-load /lib/apparmor/
 etc/apparmor.d/abstractions/*
 etc/apparmor.d/abi/*
 etc/apparmor.d/local/README
@@ -24,6 +23,7 @@ etc/apparmor.d/tunables/sys
 etc/apparmor.d/tunables/xdg-user-dirs
 etc/apparmor.d/tunables/xdg-user-dirs.d
 etc/apparmor/parser.conf
+lib/apparmor/profile-load
 sbin/apparmor_parser
 parser/aa-teardown /usr/sbin/
 parser/apparmor.systemd /lib/apparmor/

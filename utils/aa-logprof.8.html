@@ -45,23 +45,23 @@
 
 <p><b>-d --dir /path/to/profiles</b></p>
 
-<pre><code>   Specifies where to look for the AppArmor security profile set.
-   Defaults to /etc/apparmor.d.</code></pre>
+<pre><code>Specifies where to look for the AppArmor security profile set.
+Defaults to /etc/apparmor.d.</code></pre>
 
 <p><b>-f --file /path/to/logfile</b></p>
 
-<pre><code>    Specifies the location of logfile that contains AppArmor security events.
-        Default locations are read from F&lt;/etc/apparmor/logprof.conf&gt;.
-        Typical defaults are:
-                 /var/log/audit/audit.log
-                 /var/log/syslog
-                 /var/log/messages</code></pre>
+<pre><code>Specifies the location of logfile that contains AppArmor security events.
+    Default locations are read from F&lt;/etc/apparmor/logprof.conf&gt;.
+    Typical defaults are:
+             /var/log/audit/audit.log
+             /var/log/syslog
+             /var/log/messages</code></pre>
 
 <p><b> -m --logmark &quot;mark&quot;</b></p>
 
-<pre><code>   aa-logprof will ignore all events in the system log before the
-   specified mark is seen.  If the mark contains spaces, it must 
-   be surrounded with quotes to work correctly.</code></pre>
+<pre><code>aa-logprof will ignore all events in the system log before the
+specified mark is seen.  If the mark contains spaces, it must 
+be surrounded with quotes to work correctly.</code></pre>
 
 <h1 id="DESCRIPTION">DESCRIPTION</h1>
 
@@ -77,7 +77,7 @@
 
 <p>The user is then presented with info about the access including profile, path, old mode if there was a previous entry in the profile for this path, new mode, the suggestion list, and given these options:</p>
 
-<pre><code>   (A)llow, (D)eny, (I)gnore, (N)ew, (G)lob last piece, (Q)uit</code></pre>
+<pre><code>(A)llow, (D)eny, (I)gnore, (N)ew, (G)lob last piece, (Q)uit</code></pre>
 
 <p>If the AppArmor profile was in complain mode when the event was generated, the default for this option is (A)llow, otherwise, it&#39;s (D)eny.</p>
 
@@ -115,12 +115,12 @@
 
 <p>The default option for this question is selected using this logic--</p>
 
-<pre><code>  # if px mode is allowed and profile exists for the target
-  #   px is default.
-  # else if ix mode is allowed
-  #   ix is default
-  # else
-  #   deny is default</code></pre>
+<pre><code># if px mode is allowed and profile exists for the target
+#   px is default.
+# else if ix mode is allowed
+#   ix is default
+# else
+#   deny is default</code></pre>
 
 <p>aa-logprof will never suggest &quot;ux&quot; as the default.</p>
 

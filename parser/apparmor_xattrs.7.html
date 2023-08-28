@@ -32,51 +32,51 @@
 
 <p>AppArmor profiles can conditionally match files based on the presence and value of extended attributes in addition to file path. The following profile applies to any file under &quot;/usr/bin&quot; where the &quot;security.apparmor&quot; extended attribute has the value &quot;trusted&quot;:</p>
 
-<pre><code>        profile trusted /usr/bin/* xattrs=(security.apparmor=&quot;trusted&quot;) {
-                # ...
-        }</code></pre>
+<pre><code>profile trusted /usr/bin/* xattrs=(security.apparmor=&quot;trusted&quot;) {
+        # ...
+}</code></pre>
 
 <p>Note that &quot;security.apparmor&quot; and &quot;trusted&quot; are arbitrary, and profiles can match based on the value of any attribute.</p>
 
 <p>The xattrs value may also contain a path regex:</p>
 
-<pre><code>        profile trusted /usr/bin/* xattrs=(user.trust=&quot;tier/*&quot;) {
+<pre><code>profile trusted /usr/bin/* xattrs=(user.trust=&quot;tier/*&quot;) {
 
-                # ...
-        }</code></pre>
+        # ...
+}</code></pre>
 
 <p>The getfattr(1) and setfattr(1) tools can be used to view and manage xattr values:</p>
 
-<pre><code>        $ setfattr -n &#39;security.apparmor&#39; -v &#39;trusted&#39; /usr/bin/example-tool
-        $ getfattr --absolute-names -d -m - /usr/bin/example-tool
-        # file: usr/bin/example-tool
-        security.apparmor=&quot;trusted&quot;</code></pre>
+<pre><code>$ setfattr -n &#39;security.apparmor&#39; -v &#39;trusted&#39; /usr/bin/example-tool
+$ getfattr --absolute-names -d -m - /usr/bin/example-tool
+# file: usr/bin/example-tool
+security.apparmor=&quot;trusted&quot;</code></pre>
 
 <p>The priority of each profile is determined by the length of the path, then the number of xattrs specified. A more specific path is preferred over xattr matches:</p>
 
-<pre><code>        # Highest priority, longest path.
-        profile example1 /usr/bin/example-tool {
-                # ...
-        }
+<pre><code># Highest priority, longest path.
+profile example1 /usr/bin/example-tool {
+        # ...
+}
 
-        # Lower priority than the longer path, but higher priority than a rule
-        # with fewer xattr matches.
-        profile example2 /usr/** xattrs=(
-                security.apparmor=&quot;trusted&quot;
-                user.domain=&quot;**&quot;
-        ) {
-                # ...
-        }
+# Lower priority than the longer path, but higher priority than a rule
+# with fewer xattr matches.
+profile example2 /usr/** xattrs=(
+        security.apparmor=&quot;trusted&quot;
+        user.domain=&quot;**&quot;
+) {
+        # ...
+}
 
-        # Lowest priority. Same path length as the second profile, but has 
-        # fewer xattr matches.
-        profile example2 /usr/** {
-                # ...
-        }</code></pre>
+# Lowest priority. Same path length as the second profile, but has 
+# fewer xattr matches.
+profile example2 /usr/** {
+        # ...
+}</code></pre>
 
 <p>xattr matching requires the following kernel feature:</p>
 
-<pre><code>        /sys/kernel/security/apparmor/features/domain/attach_conditions/xattr</code></pre>
+<pre><code>/sys/kernel/security/apparmor/features/domain/attach_conditions/xattr</code></pre>
 
 <h1 id="KNOWN-ISSUES">KNOWN ISSUES</h1>
 

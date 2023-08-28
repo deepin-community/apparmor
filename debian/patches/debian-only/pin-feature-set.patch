@@ -24,4 +24,4 @@ index 1d1c0da..43598d4 100644
 +
 +## Pin feature set (avoid regressions when policy is lagging behind
 +## the kernel)
-+features-file=/usr/share/apparmor-features/features
++policy-features=/usr/share/apparmor-features/features

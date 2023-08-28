@@ -378,9 +378,9 @@
 
 <p>AppArmor profiles have the ability to target files based on their xattr(7) values in addition to their path. For example, the following profile matches files in /usr/bin with the attribute &quot;security.apparmor&quot; and value &quot;trusted&quot;:</p>
 
-<pre><code>  /usr/bin/* xattrs(security.apparmor=&quot;trusted&quot;) {
-    # ...
-  }</code></pre>
+<pre><code>/usr/bin/* xattrs(security.apparmor=&quot;trusted&quot;) {
+  # ...
+}</code></pre>
 
 <p>See apparmor_xattrs(7) for further details.</p>
 
@@ -683,10 +683,10 @@
 
 <p>These modes attempt to perform a domain transition as specified by the matching permission (shown below) and if that transition fails to find the matching profile the domain transition proceeds using the &#39;ix&#39; transition mode.</p>
 
-<pre><code>  &#39;Pix&#39; == &#39;Px&#39; with fallback to &#39;ix&#39;
-  &#39;pix&#39; == &#39;px&#39; with fallback to &#39;ix&#39;
-  &#39;Cix&#39; == &#39;Cx&#39; with fallback to &#39;ix&#39;
-  &#39;cix&#39; == &#39;cx&#39; with fallback to &#39;ix&#39;</code></pre>
+<pre><code>&#39;Pix&#39; == &#39;Px&#39; with fallback to &#39;ix&#39;
+&#39;pix&#39; == &#39;px&#39; with fallback to &#39;ix&#39;
+&#39;Cix&#39; == &#39;Cx&#39; with fallback to &#39;ix&#39;
+&#39;cix&#39; == &#39;cx&#39; with fallback to &#39;ix&#39;</code></pre>
 
 <p>Incompatible with other exec transition modes and the deny qualifier.</p>
 
@@ -696,10 +696,10 @@
 
 <p>These modes attempt to perform a domain transition as specified by the matching permission (shown below) and if that transition fails to find the matching profile the domain transition proceeds using the &#39;ux&#39; transition mode if &#39;pux&#39;, &#39;cux&#39; or the &#39;Ux&#39; transition mode if &#39;PUx&#39;, &#39;CUx&#39; is used.</p>
 
-<pre><code>  &#39;PUx&#39; == &#39;Px&#39; with fallback to &#39;Ux&#39;
-  &#39;pux&#39; == &#39;px&#39; with fallback to &#39;ux&#39;
-  &#39;CUx&#39; == &#39;Cx&#39; with fallback to &#39;Ux&#39;
-  &#39;cux&#39; == &#39;cx&#39; with fallback to &#39;ux&#39;</code></pre>
+<pre><code>&#39;PUx&#39; == &#39;Px&#39; with fallback to &#39;Ux&#39;
+&#39;pux&#39; == &#39;px&#39; with fallback to &#39;ux&#39;
+&#39;CUx&#39; == &#39;Cx&#39; with fallback to &#39;Ux&#39;
+&#39;cux&#39; == &#39;cx&#39; with fallback to &#39;ux&#39;</code></pre>
 
 <p>Incompatible with other exec transition modes and the deny qualifier.</p>
 
@@ -719,7 +719,7 @@
 
 <p>The name of the profile to transition to is specified using the &#39;-&gt;&#39; followed by the name of the profile to transition to. Eg.</p>
 
-<pre><code>  /bin/** px -&gt; profile,</code></pre>
+<pre><code>/bin/** px -&gt; profile,</code></pre>
 
 <p>Incompatible with other exec transition modes.</p>
 
@@ -747,13 +747,13 @@
 
 <p>File rules can be specified with the access permission either leading or trailing the file glob. Eg.</p>
 
-<pre><code>  rw /**,               # leading permissions
+<pre><code>rw /**,               # leading permissions
 
-  /** rw,               # trailing permissions</code></pre>
+/** rw,               # trailing permissions</code></pre>
 
 <p>When leading permissions are used further rule options and context may be allowed, Eg.</p>
 
-<pre><code>  l /foo -&gt; /bar,       # lead &#39;l&#39; link permission is equivalent to link rules</code></pre>
+<pre><code>l /foo -&gt; /bar,       # lead &#39;l&#39; link permission is equivalent to link rules</code></pre>
 
 </dd>
 </dl>
@@ -764,10 +764,10 @@
 
 <p>Eg.</p>
 
-<pre><code>  /file1  r,
-  /file2  rwk,
-  /link*  rw,
-  link subset /link* -&gt; /**,</code></pre>
+<pre><code>/file1  r,
+/file2  rwk,
+/link*  rw,
+link subset /link* -&gt; /**,</code></pre>
 
 <p>The link rule allows linking of /link to both /file1 or /file2 by name however because the /link file has &#39;rw&#39; permissions it is not allowed to link to /file1 because that would grant an access path to /file1 with more permissions than the &#39;r&#39; permissions the profile specifies.</p>
 
@@ -777,14 +777,14 @@
 
 <p>The following link rule is equivalent to the &#39;l&#39; permission file rule</p>
 
-<pre><code>  link /foo -&gt; bar,
-  l /foo -&gt; /bar,</code></pre>
+<pre><code>link /foo -&gt; bar,
+l /foo -&gt; /bar,</code></pre>
 
 <p>File rules that specify the &#39;l&#39; permission and don&#39;t specify the extend link permissions map to link rules as follows.</p>
 
-<pre><code>  /foo l,
-  l /foo,
-  link subset /foo -&gt; /**,</code></pre>
+<pre><code>/foo l,
+l /foo,
+link subset /foo -&gt; /**,</code></pre>
 
 <h2 id="Comments">Comments</h2>
 
@@ -804,11 +804,11 @@
 
 <p>eg.</p>
 
-<pre><code> network,               #allow access to all networking
- network tcp,           #allow access to tcp
- network inet tcp,      #allow access to tcp only for inet4 addresses
- network inet6 tcp,     #allow access to tcp only for inet6 addresses
- network netlink raw,   #allow access to AF_NETLINK SOCK_RAW</code></pre>
+<pre><code>network,               #allow access to all networking
+network tcp,           #allow access to tcp
+network inet tcp,      #allow access to tcp only for inet4 addresses
+network inet6 tcp,     #allow access to tcp only for inet6 addresses
+network netlink raw,   #allow access to AF_NETLINK SOCK_RAW</code></pre>
 
 <h2 id="Mount-Rules">Mount Rules</h2>
 
@@ -818,72 +818,72 @@
 
 <li><p>If a conditional is specified using &#39;=&#39;, then the rule only grants permission for mounts matching the exactly specified options. For example, an AppArmor policy with the following rule:</p>
 
-<pre><code>    mount options=ro /dev/foo -E&lt;gt&gt; /mnt/,</code></pre>
+<pre><code>mount options=ro /dev/foo -E&lt;gt&gt; /mnt/,</code></pre>
 
 <p>Would match:</p>
 
-<pre><code>    $ mount -o ro /dev/foo /mnt</code></pre>
+<pre><code>$ mount -o ro /dev/foo /mnt</code></pre>
 
 <p>but not either of these:</p>
 
-<pre><code>    $ mount -o ro,atime /dev/foo /mnt
+<pre><code>$ mount -o ro,atime /dev/foo /mnt
 
-    $ mount -o rw /dev/foo /mnt</code></pre>
+$ mount -o rw /dev/foo /mnt</code></pre>
 
 </li>
 <li><p>If a conditional is specified using &#39;in&#39;, then the rule grants permission for mounts matching any combination of the specified options. For example, if an AppArmor policy has the following rule:</p>
 
-<pre><code>    mount options in (ro,atime) /dev/foo -&gt; /mnt/,</code></pre>
+<pre><code>mount options in (ro,atime) /dev/foo -&gt; /mnt/,</code></pre>
 
 <p>all of these mount commands will match:</p>
 
-<pre><code>    $ mount -o ro /dev/foo /mnt
+<pre><code>$ mount -o ro /dev/foo /mnt
 
-    $ mount -o ro,atime /dev/foo /mnt
+$ mount -o ro,atime /dev/foo /mnt
 
-    $ mount -o atime /dev/foo /mnt</code></pre>
+$ mount -o atime /dev/foo /mnt</code></pre>
 
 <p>but none of these will:</p>
 
-<pre><code>    $ mount -o ro,sync /dev/foo /mnt
+<pre><code>$ mount -o ro,sync /dev/foo /mnt
 
-    $ mount -o ro,atime,sync /dev/foo /mnt
+$ mount -o ro,atime,sync /dev/foo /mnt
 
-    $ mount -o rw /dev/foo /mnt
+$ mount -o rw /dev/foo /mnt
 
-    $ mount -o rw,noatime /dev/foo /mnt
+$ mount -o rw,noatime /dev/foo /mnt
 
-    $ mount /dev/foo /mnt</code></pre>
+$ mount /dev/foo /mnt</code></pre>
 
 </li>
 <li><p>If multiple conditionals are specified in a single mount rule, then the rule grants permission for each set of options. This provides a shorthand when writing mount rules which might help to logically break up a conditional. For example, if an AppArmor policy has the following rule:</p>
 
-<pre><code>    mount options=ro options=atime</code></pre>
+<pre><code>mount options=ro options=atime</code></pre>
 
 <p>both of these mount commands will match:</p>
 
-<pre><code>    $ mount -o ro /dev/foo /mnt
+<pre><code>$ mount -o ro /dev/foo /mnt
 
-    $ mount -o atime /dev/foo /mnt</code></pre>
+$ mount -o atime /dev/foo /mnt</code></pre>
 
 <p>but this one will not:</p>
 
-<pre><code>    $ mount -o ro,atime /dev/foo /mnt</code></pre>
+<pre><code>$ mount -o ro,atime /dev/foo /mnt</code></pre>
 
 </li>
 </ol>
 
 <p>Note that separate mount rules are distinct and the options do not accumulate. For example, these AppArmor mount rules:</p>
 
-<pre><code>    mount options=ro,
+<pre><code>mount options=ro,
 
-    mount options=atime,</code></pre>
+mount options=atime,</code></pre>
 
 <p>are not equivalent to either of these mount rules:</p>
 
-<pre><code>    mount options=(ro,atime),
+<pre><code>mount options=(ro,atime),
 
-    mount options in (ro,atime),</code></pre>
+mount options in (ro,atime),</code></pre>
 
 <p>To help clarify the flexibility and complexity of mount rules, here are some example rules with accompanying matching commands:</p>
 
@@ -900,13 +900,13 @@
 
 <p>allow mounting of /dev/foo anywhere with any options. Some matching mount commands:</p>
 
-<pre><code>    $ mount /dev/foo /mnt
+<pre><code>$ mount /dev/foo /mnt
 
-    $ mount -t ext3 /dev/foo /mnt
+$ mount -t ext3 /dev/foo /mnt
 
-    $ mount -t vfat /dev/foo /mnt
+$ mount -t vfat /dev/foo /mnt
 
-    $ mount -o ro,atime,noexec,nodiratime /dev/foo /srv/some/mountpoint</code></pre>
+$ mount -o ro,atime,noexec,nodiratime /dev/foo /srv/some/mountpoint</code></pre>
 
 </dd>
 <dt id="mount-options-ro-dev-foo"><b>mount options=ro /dev/foo,</b></dt>
@@ -914,9 +914,9 @@
 
 <p>allow mounting of /dev/foo anywhere, as read only. Some matching mount commands:</p>
 
-<pre><code>    $ mount -o ro /dev/foo /mnt
+<pre><code>$ mount -o ro /dev/foo /mnt
 
-    $ mount -o ro /dev/foo /some/where/else</code></pre>
+$ mount -o ro /dev/foo /some/where/else</code></pre>
 
 </dd>
 <dt id="mount-options-ro-atime-dev-foo"><b>mount options=(ro,atime) /dev/foo,</b></dt>
@@ -924,9 +924,9 @@
 
 <p>allow mount of /dev/foo anywhere, as read only and using inode access times. Some matching mount commands:</p>
 
-<pre><code>    $ mount -o ro,atime /dev/foo /mnt
+<pre><code>$ mount -o ro,atime /dev/foo /mnt
 
-    $ mount -o ro,atime /dev/foo /some/where/else</code></pre>
+$ mount -o ro,atime /dev/foo /some/where/else</code></pre>
 
 </dd>
 <dt id="mount-options-in-ro-atime-dev-foo"><b>mount options in (ro,atime) /dev/foo,</b></dt>
@@ -934,11 +934,11 @@
 
 <p>allow mount of /dev/foo anywhere using some combination of &#39;ro&#39; and &#39;atime&#39; (see above). Some matching mount commands:</p>
 
-<pre><code>    $ mount -o ro /dev/foo /mnt
+<pre><code>$ mount -o ro /dev/foo /mnt
 
-    $ mount -o atime /dev/foo /some/where/else
+$ mount -o atime /dev/foo /some/where/else
 
-    $ mount -o ro,atime /dev/foo /some/other/place</code></pre>
+$ mount -o ro,atime /dev/foo /some/other/place</code></pre>
 
 </dd>
 <dt id="mount-options-ro-dev-foo-mount-options-atime-dev-foo"><b>mount options=ro /dev/foo, mount options=atime /dev/foo,</b></dt>
@@ -946,9 +946,9 @@
 
 <p>allow mount of /dev/foo anywhere as read only, and allow mount of /dev/foo anywhere using inode access times. Note this is expressed as two different rules. Matches:</p>
 
-<pre><code>    $ mount -o ro /dev/foo /mnt/1
+<pre><code>$ mount -o ro /dev/foo /mnt/1
 
-    $ mount -o atime /dev/foo /mnt/2</code></pre>
+$ mount -o atime /dev/foo /mnt/2</code></pre>
 
 </dd>
 <dt id="mount---mnt"><b>mount -&gt; /mnt/**,</b></dt>
@@ -956,9 +956,9 @@
 
 <p>allow mounting anything under a directory in /mnt/**. Some matching mount commands:</p>
 
-<pre><code>    $ mount /dev/foo1 /mnt/1
+<pre><code>$ mount /dev/foo1 /mnt/1
 
-    $ mount -o ro,atime,noexec,nodiratime /dev/foo2 /mnt/deep/path/foo2</code></pre>
+$ mount -o ro,atime,noexec,nodiratime /dev/foo2 /mnt/deep/path/foo2</code></pre>
 
 </dd>
 <dt id="mount-options-ro---mnt"><b>mount options=ro -&gt; /mnt/**,</b></dt>
@@ -966,9 +966,9 @@
 
 <p>allow mounting anything under /mnt/**, as read only. Some matching mount commands:</p>
 
-<pre><code>    $ mount -o ro /dev/foo1 /mnt/1
+<pre><code>$ mount -o ro /dev/foo1 /mnt/1
 
-    $ mount -o ro /dev/foo2 /mnt/deep/path/foo2</code></pre>
+$ mount -o ro /dev/foo2 /mnt/deep/path/foo2</code></pre>
 
 </dd>
 <dt id="mount-fstype-ext3-options-rw-atime-dev-sdb1---mnt-stick"><b>mount fstype=ext3 options=(rw,atime) /dev/sdb1 -&gt; /mnt/stick/,</b></dt>
@@ -976,7 +976,7 @@
 
 <p>allow mounting an ext3 filesystem in /dev/sdb1 on /mnt/stick as read/write and using inode access times. Matches only:</p>
 
-<pre><code>    $ mount -o rw,atime /dev/sdb1 /mnt/stick</code></pre>
+<pre><code>$ mount -o rw,atime /dev/sdb1 /mnt/stick</code></pre>
 
 </dd>
 <dt id="mount-options-ro-atime-options-in-nodev-user-dev-foo---mnt"><b>mount options=(ro, atime) options in (nodev, user) /dev/foo -&gt; /mnt/,</b></dt>
@@ -984,13 +984,13 @@
 
 <p>allow mounting /dev/foo on /mmt/ read only and using inode access times or allow mounting /dev/foo on /mnt/ with some combination of &#39;nodev&#39; and &#39;user&#39;. Matches only:</p>
 
-<pre><code>    $ mount -o ro,atime /dev/foo /mnt
+<pre><code>$ mount -o ro,atime /dev/foo /mnt
 
-    $ mount -o nodev /dev/foo /mnt
+$ mount -o nodev /dev/foo /mnt
 
-    $ mount -o user /dev/foo /mnt
+$ mount -o user /dev/foo /mnt
 
-    $ mount -o nodev,user /dev/foo /mnt</code></pre>
+$ mount -o nodev,user /dev/foo /mnt</code></pre>
 
 </dd>
 </dl>
@@ -1005,23 +1005,23 @@
 
 <p>Here are some example &#39;pivot_root&#39; rules:</p>
 
-<pre><code>    # Allow any pivot
-    pivot_root,
+<pre><code># Allow any pivot
+pivot_root,
 
-    # Allow pivoting to any new root directory and putting the old root
-    # directory at /mnt/root/old/
-    pivot_root oldroot=/mnt/root/old/,
+# Allow pivoting to any new root directory and putting the old root
+# directory at /mnt/root/old/
+pivot_root oldroot=/mnt/root/old/,
 
-    # Allow pivoting the root directory to /mnt/root/
-    pivot_root /mnt/root/,
+# Allow pivoting the root directory to /mnt/root/
+pivot_root /mnt/root/,
 
-    # Allow pivoting to /mnt/root/ and putting the old root directory at
-    # /mnt/root/old/
-    pivot_root oldroot=/mnt/root/old/ /mnt/root/,
+# Allow pivoting to /mnt/root/ and putting the old root directory at
+# /mnt/root/old/
+pivot_root oldroot=/mnt/root/old/ /mnt/root/,
 
-    # Allow pivoting to /mnt/root/, putting the old root directory at
-    # /mnt/root/old/ and transition to the /mnt/root/sbin/init profile
-    pivot_root oldroot=/mnt/root/old/ /mnt/root/ -&gt; /mnt/root/sbin/init,</code></pre>
+# Allow pivoting to /mnt/root/, putting the old root directory at
+# /mnt/root/old/ and transition to the /mnt/root/sbin/init profile
+pivot_root oldroot=/mnt/root/old/ /mnt/root/ -&gt; /mnt/root/sbin/init,</code></pre>
 
 <h2 id="PTrace-rules">PTrace rules</h2>
 
@@ -1035,20 +1035,20 @@
 
 <p>Example AppArmor PTrace rules:</p>
 
-<pre><code>    # Allow all PTrace access
-    ptrace,
+<pre><code># Allow all PTrace access
+ptrace,
 
-    # Explicitly allow all PTrace access,
-    ptrace (read, readby, trace, tracedby),
+# Explicitly allow all PTrace access,
+ptrace (read, readby, trace, tracedby),
 
-    # Explicitly deny use of ptrace(2)
-    deny ptrace (trace),
+# Explicitly deny use of ptrace(2)
+deny ptrace (trace),
 
-    # Allow unconfined processes (eg, a debugger) to ptrace us
-    ptrace (readby, tracedby) peer=unconfined,
+# Allow unconfined processes (eg, a debugger) to ptrace us
+ptrace (readby, tracedby) peer=unconfined,
 
-    # Allow ptrace of a process running under the /usr/bin/foo profile
-    ptrace (trace) peer=/usr/bin/foo,</code></pre>
+# Allow ptrace of a process running under the /usr/bin/foo profile
+ptrace (trace) peer=/usr/bin/foo,</code></pre>
 
 <h2 id="Signal-rules">Signal rules</h2>
 
@@ -1060,27 +1060,27 @@
 
 <p>Example AppArmor signal rules:</p>
 
-<pre><code>    # Allow all signal access
-    signal,
+<pre><code># Allow all signal access
+signal,
 
-    # Explicitly deny sending the HUP and INT signals
-    deny signal (send) set=(hup, int),
+# Explicitly deny sending the HUP and INT signals
+deny signal (send) set=(hup, int),
 
-    # Allow unconfined processes to send us signals
-    signal (receive) peer=unconfined,
+# Allow unconfined processes to send us signals
+signal (receive) peer=unconfined,
 
-    # Allow sending of signals to a process running under the /usr/bin/foo
-    # profile
-    signal (send) peer=/usr/bin/foo,
+# Allow sending of signals to a process running under the /usr/bin/foo
+# profile
+signal (send) peer=/usr/bin/foo,
 
-    # Allow checking for PID existence
-    signal (receive, send) set=(&quot;exists&quot;),
+# Allow checking for PID existence
+signal (receive, send) set=(&quot;exists&quot;),
 
-    # Allow us to signal ourselves using the built-in @{profile_name} variable
-    signal peer=@{profile_name},
+# Allow us to signal ourselves using the built-in @{profile_name} variable
+signal peer=@{profile_name},
 
-    # Allow two real-time signals
-    signal set=(rtmin+0 rtmin+32),</code></pre>
+# Allow two real-time signals
+signal set=(rtmin+0 rtmin+32),</code></pre>
 
 <h2 id="DBus-rules">DBus rules</h2>
 
@@ -1098,41 +1098,41 @@
 
 <p>Example AppArmor DBus rules:</p>
 
-<pre><code>    # Allow all DBus access
-    dbus,
+<pre><code># Allow all DBus access
+dbus,
 
-    # Explicitly allow all DBus access,
-    dbus (send, receive, bind),
+# Explicitly allow all DBus access,
+dbus (send, receive, bind),
 
-    # Deny send/receive/bind access to the session bus
-    deny dbus bus=session,
+# Deny send/receive/bind access to the session bus
+deny dbus bus=session,
 
-    # Allow bind access for a particular name on any bus
-    dbus bind name=com.example.ExampleName,
+# Allow bind access for a particular name on any bus
+dbus bind name=com.example.ExampleName,
 
-    # Allow receive access for a particular path and interface
-    dbus receive path=/com/example/path interface=com.example.Interface,
+# Allow receive access for a particular path and interface
+dbus receive path=/com/example/path interface=com.example.Interface,
 
-    # Deny send/receive access to the system bus for a particular interface
-    deny dbus bus=system interface=com.example.ExampleInterface,
+# Deny send/receive access to the system bus for a particular interface
+deny dbus bus=system interface=com.example.ExampleInterface,
 
-    # Allow send access for a particular path, interface, member, and pair of
-    # peer names:
-    dbus send
-         bus=session
-         path=/com/example/path
-         interface=com.example.Interface
-         member=ExampleMethod
-         peer=(name=(com.example.ExampleName1|com.example.ExampleName2)),
+# Allow send access for a particular path, interface, member, and pair of
+# peer names:
+dbus send
+     bus=session
+     path=/com/example/path
+     interface=com.example.Interface
+     member=ExampleMethod
+     peer=(name=(com.example.ExampleName1|com.example.ExampleName2)),
 
-    # Allow receive access for all unconfined peers
-    dbus receive peer=(label=unconfined),
+# Allow receive access for all unconfined peers
+dbus receive peer=(label=unconfined),
 
-    # Allow eavesdropping on the system bus
-    dbus eavesdrop bus=system,
+# Allow eavesdropping on the system bus
+dbus eavesdrop bus=system,
 
-    # Allow and audit all eavesdropping
-    audit dbus eavesdrop,</code></pre>
+# Allow and audit all eavesdropping
+audit dbus eavesdrop,</code></pre>
 
 <h2 id="Unix-socket-rules">Unix socket rules</h2>
 
@@ -1144,31 +1144,31 @@
 
 <p>The sun_path component (aka the socket address) of a unix domain socket is specified by the</p>
 
-<pre><code>  addr=</code></pre>
+<pre><code>addr=</code></pre>
 
 <p>conditional. If an address conditional is not specified as part of a rule then the rule matches both abstract and anonymous sockets.</p>
 
 <p>In apparmor the address of an abstract unix domain socket begins with the <i>@</i> character, similar to how they are reported (as paths) by netstat -x. The address then follows and may contain pattern matching and any characters including the null character. In apparmor null characters must be specified by using an escape sequence <i>\000</i> or <i>\x00</i>. The pattern matching is the same as is used by file path matching so * will not match <i>/</i> even though it has no special meaning with in an abstract socket name. Eg.</p>
 
-<pre><code>  unix addr=@*,</code></pre>
+<pre><code>unix addr=@*,</code></pre>
 
 <p>Autobound unix domain sockets have a unix sun_path assigned to them by the kernel, as such specifying a policy based address is not possible. The autobinding of sockets can be controlled by specifying the special <i>auto</i> keyword. Eg.</p>
 
-<pre><code>  unix addr=auto,</code></pre>
+<pre><code>unix addr=auto,</code></pre>
 
 <p>To indicate that the rule only applies to auto binding of unix domain sockets. It is important to note this only applies to the <i>bind</i> permission as once the socket is bound to an address it is indistinguishable from a socket that have an addr bound with a specified name. When the <i>auto</i> keyword is used with other permissions or as part of a peer addr it will be replaced with a pattern that can match an autobound socket. Eg. For some kernels</p>
 
-<pre><code>  unix rw addr=auto,</code></pre>
+<pre><code>unix rw addr=auto,</code></pre>
 
 <p>is transformed to</p>
 
-<pre><code>  unix rw addr=@[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9],</code></pre>
+<pre><code>unix rw addr=@[a-f0-9][a-f0-9][a-f0-9][a-f0-9][a-f0-9],</code></pre>
 
 <p>It is important to note, this pattern may match abstract sockets that were not autobound but have an addr that fits what is generated by the kernel when autobinding a socket.</p>
 
 <p>Anonymous unix domain sockets have no sun_path associated with the socket address, however it can be specified with the special <i>none</i> keyword to indicate the rule only applies to anonymous unix domain sockets. Eg.</p>
 
-<pre><code>  unix addr=none,</code></pre>
+<pre><code>unix addr=none,</code></pre>
 
 <p>If the address component of a rule is not specified then the rule applies to autobind, abstract and anonymous sockets.</p>
 
@@ -1186,31 +1186,31 @@
 
 <h3 id="Example-Unix-domain-socket-rules">Example Unix domain socket rules:</h3>
 
-<pre><code>  # Allow all permissions to unix sockets
-  unix,
+<pre><code># Allow all permissions to unix sockets
+unix,
 
-  # Explicitly allow all unix permissions
-  unix (create, listen, accept, connect, send, receive, getattr, setattr, setopt, getopt),
+# Explicitly allow all unix permissions
+unix (create, listen, accept, connect, send, receive, getattr, setattr, setopt, getopt),
 
-  # Explicitly deny unix socket access
-  deny unix,
+# Explicitly deny unix socket access
+deny unix,
 
-  # Allow create and use of abstract and anonymous sockets for profile_name
-  unix peer=(label=@{profile_name}),
+# Allow create and use of abstract and anonymous sockets for profile_name
+unix peer=(label=@{profile_name}),
 
-  # Allow receiving via unix sockets from unconfined
-  unix (receive) peer=(label=unconfined),
+# Allow receiving via unix sockets from unconfined
+unix (receive) peer=(label=unconfined),
 
-  # Allow getattr and shutdown on anonymous sockets
-  unix (getattr, shutdown) addr=none,
+# Allow getattr and shutdown on anonymous sockets
+unix (getattr, shutdown) addr=none,
 
-  # Allow SOCK_STREAM connect, receive and send on an abstract socket @bar
-  # with peer running under profile &#39;/foo&#39;
-  unix (connect, receive, send) type=stream peer=(label=/foo,addr=&quot;@bar&quot;),
+# Allow SOCK_STREAM connect, receive and send on an abstract socket @bar
+# with peer running under profile &#39;/foo&#39;
+unix (connect, receive, send) type=stream peer=(label=/foo,addr=&quot;@bar&quot;),
 
-  # Allow accepting connections from and receiving from peer running under
-  # profile &#39;/bar&#39; on abstract socket &#39;@foo&#39;
-  unix (accept, receive) addr=@foo peer=(label=/bar),</code></pre>
+# Allow accepting connections from and receiving from peer running under
+# profile &#39;/bar&#39; on abstract socket &#39;@foo&#39;
+unix (accept, receive) addr=@foo peer=(label=/bar),</code></pre>
 
 <h3 id="Abstract-unix-domain-sockets-autobind">Abstract unix domain sockets autobind</h3>
 
@@ -1222,42 +1222,42 @@
 
 <p>E.G.</p>
 
-<pre><code>    network unix,  =&gt;  unix,
+<pre><code>network unix,  =&gt;  unix,
 
-    network unix stream,   =&gt;  unix stream,</code></pre>
+network unix stream,   =&gt;  unix stream,</code></pre>
 
 <p>Fine grained mediation rules however can not be losslessly converted back to the coarse grained network rule; e.g.</p>
 
-<pre><code>   unix bind addr=@example,</code></pre>
+<pre><code>unix bind addr=@example,</code></pre>
 
 <p>Has no exact match under coarse grained network rules, the closest match is the much wider permission rule of</p>
 
-<pre><code>   network unix,</code></pre>
+<pre><code>network unix,</code></pre>
 
 <h2 id="change_profile-rules">change_profile rules</h2>
 
 <p>AppArmor supports self directed profile transitions via the change_profile api. Change_profile rules control which permissions for which profiles a confined task can transition to. The profile name can contain apparmor pattern matching to specify different profiles.</p>
 
-<pre><code>  change_profile -&gt; **,</code></pre>
+<pre><code>change_profile -&gt; **,</code></pre>
 
 <p>The change_profile api allows the transition to be delayed until when a task executes another application. If an exec rule transition is specified for the application and the change_profile api is used to make a transition at exec time, the transition specified by the change_profile api takes precedence.</p>
 
 <p>The Change_profile permission can restrict which profiles can be transitioned to based off of the executable name by specifying the exec condition.</p>
 
-<pre><code>  change_profile /bin/bash -&gt; new_profile,</code></pre>
+<pre><code>change_profile /bin/bash -&gt; new_profile,</code></pre>
 
 <p>The restricting of the transition profile to a given executable at exec time is only useful when then current task is allowed to make dynamic decisions about what confinement should be, but the decision set needs to be controlled. A list of profiles or multiple rules can be used to specify the profiles in the set. Eg.</p>
 
-<pre><code>  change_profile /bin/bash -&gt; {new_profile1,new_profile2,new_profile3},</code></pre>
+<pre><code>change_profile /bin/bash -&gt; {new_profile1,new_profile2,new_profile3},</code></pre>
 
 <p>An exec rule can be used to specify a transition for the executable, if the transition should be allowed even if the change_profile api has not been used to select a transition for those available in the change_profile rule set. Eg.</p>
 
-<pre><code>  /bin/bash Px -&gt; new_profile1,
-  change_profile /bin/bash -&gt; {new_profile1,new_profile2,new_profile3},</code></pre>
+<pre><code>/bin/bash Px -&gt; new_profile1,
+change_profile /bin/bash -&gt; {new_profile1,new_profile2,new_profile3},</code></pre>
 
 <p>The exec mode dictates whether or not the Linux Kernel&#39;s <b>unsafe_exec</b> routines should be used to scrub the environment, similar to setuid programs. (See ld.so(8) for some information on setuid/setgid environment scrubbing.) The <b>safe</b> mode sets up environment scrubbing to occur when the new application is executed and <b>unsafe</b> mode disables AppArmor&#39;s requirement for environment scrubbing (the kernel and/or libc may still require environment scrubbing). An exec mode can only be specified when an exec condition is present.</p>
 
-<pre><code>  change_profile safe /bin/bash -&gt; new_profile,</code></pre>
+<pre><code>change_profile safe /bin/bash -&gt; new_profile,</code></pre>
 
 <p>Not all kernels support <b>safe</b> mode and the parser will downgrade rules to <b>unsafe</b> mode in that situation. If no exec mode is specified, the default is <b>safe</b> mode in kernels that support it.</p>
 
@@ -1273,9 +1273,9 @@
 
 <p>Eg.</p>
 
-<pre><code>  set rlimit data &lt;= 100M,
-  set rlimit nproc &lt;= 10,
-  set rlimit nice &lt;= 5,</code></pre>
+<pre><code>set rlimit data &lt;= 100M,
+set rlimit nproc &lt;= 10,
+set rlimit nice &lt;= 5,</code></pre>
 
 <h2 id="Variables">Variables</h2>
 
@@ -1285,25 +1285,25 @@
 
 <p>At the time of this writing, the following variables are defined in the provided AppArmor policy:</p>
 
-<pre><code>  @{HOME}
-  @{HOMEDIRS}
-  @{multiarch}
-  @{pid}
-  @{pids}
-  @{PROC}
-  @{securityfs}
-  @{apparmorfs}
-  @{sys}
-  @{tid}
-  @{run}
-  @{XDG_DESKTOP_DIR}
-  @{XDG_DOWNLOAD_DIR}
-  @{XDG_TEMPLATES_DIR}
-  @{XDG_PUBLICSHARE_DIR}
-  @{XDG_DOCUMENTS_DIR}
-  @{XDG_MUSIC_DIR}
-  @{XDG_PICTURES_DIR}
-  @{XDG_VIDEOS_DIR}</code></pre>
+<pre><code>@{HOME}
+@{HOMEDIRS}
+@{multiarch}
+@{pid}
+@{pids}
+@{PROC}
+@{securityfs}
+@{apparmorfs}
+@{sys}
+@{tid}
+@{run}
+@{XDG_DESKTOP_DIR}
+@{XDG_DOWNLOAD_DIR}
+@{XDG_TEMPLATES_DIR}
+@{XDG_PUBLICSHARE_DIR}
+@{XDG_DOCUMENTS_DIR}
+@{XDG_MUSIC_DIR}
+@{XDG_PICTURES_DIR}
+@{XDG_VIDEOS_DIR}</code></pre>
 
 <p>These are defined in files in <i>/etc/apparmor.d/tunables</i> and are used in many of the abstractions described later.</p>
 
@@ -1431,10 +1431,10 @@
 
 <p>Rule Qualifiers can be applied to multiple rules at a time by grouping the rules into a rule block.</p>
 
-<pre><code>  audit {
-     /foo r,
-     network,
-  }</code></pre>
+<pre><code>audit {
+   /foo r,
+   network,
+}</code></pre>
 
 <h2 id="include-mechanism">#include mechanism</h2>
 
@@ -1574,44 +1574,44 @@
 
 <p>An example AppArmor profile:</p>
 
-<pre><code>        # which feature abi the policy was developed with
-        abi &lt;abi/3.0&gt;,
+<pre><code># which feature abi the policy was developed with
+abi &lt;abi/3.0&gt;,
 
-        # a variable definition in the preamble
-        @{HOME} = /home/*/ /root/
+# a variable definition in the preamble
+@{HOME} = /home/*/ /root/
 
-        # a comment about foo.
-        /usr/bin/foo {
-          /bin/mount          ux,
-          /dev/{,u}random     r,
-          /etc/ld.so.cache    r,
-          /etc/foo.conf       r,
-          /etc/foo/*          r,
-          /lib/ld-*.so*       rmix,
-          /lib/lib*.so*       r,
-          /proc/[0-9]**       r,
-          /usr/lib/**         r,
-          /tmp/foo.pid        wr,
-          /tmp/foo.*          lrw,
-          /@{HOME}/.foo_file  rw,
-          /usr/bin/baz        Cx -&gt; baz,
+# a comment about foo.
+/usr/bin/foo {
+  /bin/mount          ux,
+  /dev/{,u}random     r,
+  /etc/ld.so.cache    r,
+  /etc/foo.conf       r,
+  /etc/foo/*          r,
+  /lib/ld-*.so*       rmix,
+  /lib/lib*.so*       r,
+  /proc/[0-9]**       r,
+  /usr/lib/**         r,
+  /tmp/foo.pid        wr,
+  /tmp/foo.*          lrw,
+  /@{HOME}/.foo_file  rw,
+  /usr/bin/baz        Cx -&gt; baz,
 
-          # a comment about foo&#39;s hat (subprofile), bar.
-          ^bar {
-            /lib/ld-*.so*       rmix,
-            /usr/bin/bar        rmix,
-            /var/spool/*        rwl,
-          }
+  # a comment about foo&#39;s hat (subprofile), bar.
+  ^bar {
+    /lib/ld-*.so*       rmix,
+    /usr/bin/bar        rmix,
+    /var/spool/*        rwl,
+  }
 
-          # a comment about foo&#39;s subprofile, baz.
-          profile baz {
-            #include &lt;abstractions/bash&gt;
-            owner /proc/[0-9]*/stat r,
-            /bin/bash ixr,
-            /var/lib/baz/ r,
-            owner /var/lib/baz/* rw,
-          }
-        }</code></pre>
+  # a comment about foo&#39;s subprofile, baz.
+  profile baz {
+    #include &lt;abstractions/bash&gt;
+    owner /proc/[0-9]*/stat r,
+    /bin/bash ixr,
+    /var/lib/baz/ r,
+    owner /var/lib/baz/* rw,
+  }
+}</code></pre>
 
 <h1 id="FILES">FILES</h1>
 
