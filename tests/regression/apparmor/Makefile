@@ -67,8 +67,8 @@ system aa-exec by adding USE_SYSTEM=1 to your make command.${nl}\
   LDLIBS += -Wl,-Bstatic -lapparmor -Wl,-Bdynamic -lpthread
 endif # USE_SYSTEM
 
-+SYSCTL_INCLUDE="\#include <sys/sysctl.h>"
-+USE_SYSCTL:=$(shell echo $(SYSCTL_INCLUDE) | cpp -dM >/dev/null 2>/dev/null && echo true)
+SYSCTL_INCLUDE="\#include <sys/sysctl.h>"
+USE_SYSCTL:=$(shell echo $(SYSCTL_INCLUDE) | cpp -dM >/dev/null 2>/dev/null && echo true)
 
 CFLAGS += -g -O0 $(EXTRA_WARNINGS)
 
@@ -316,6 +316,9 @@ unix_socket_client: unix_socket_client.c unix_socket_common.o
 
 unix_socket: unix_socket.c unix_socket_common.o unix_socket_client
 	${CC} ${CFLAGS} ${LDFLAGS} $(filter-out unix_socket_client, $^) -o $@ ${LDLIBS}
+
+mount: mount.c
+	${CC} ${CFLAGS} -std=gnu99 ${LDFLAGS} $^ -o $@ ${LDLIBS}
 
 build-dep:
 	@if [ `whoami` = "root" ] ;\

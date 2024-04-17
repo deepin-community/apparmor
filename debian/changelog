@@ -1,3 +1,50 @@
+apparmor (3.0.13-2) unstable; urgency=medium
+
+  * Revert "Vcs-* control fields: track the debian/experimental branch"
+  * Revert "gbp.conf: set debian-branch to debian/experimental"
+  * Upload to unstable
+
+ -- intrigeri <intrigeri@debian.org>  Mon, 25 Mar 2024 10:52:20 +0000
+
+apparmor (3.0.13-1) experimental; urgency=medium
+
+  [ intrigeri ]
+  * Don't install
+    /etc/apparmor.d/abstractions/ubuntu-browsers.d/chromium-browser
+    (Closes: #1039668)
+  * Declare compliance with Policy 4.6.2
+  * Update build dependency: pkg-config → pkgconf
+  * Fix spelling error in README.source
+  * autopkgtests: enforce "set -u" in scripts
+  * autopkgtests: make scripts ShellCheck-compliant
+  * Import new upstream release (Closes: #1057453)
+
+  [ Helmut Grohne ]
+  * Fix FTCBFS: Fix confusion of compiler flags for python extension
+    (Closes: #1057188)
+
+  [ Michael Biebl ]
+  * Install PAM module, binaries and helper scripts into /usr.
+    (Closes: #1064151)
+
+  [ Remus-Gabriel Chelu ]
+  * Add Romanian translation of debconf templates (Closes: #1031142)
+
+ -- intrigeri <intrigeri@debian.org>  Wed, 28 Feb 2024 17:21:10 +0000
+
+apparmor (3.0.12-1) unstable; urgency=medium
+
+  * New upstream releases: 3.0.9, 3.0.10, 3.0.11, and 3.0.12
+    (Closes: #929990, #1037578, #1040481)
+  * Drop patches that are part of new upstream releases
+  * Adjust to profiles renamed upstream
+  * Refresh remaining patches
+  * Install new profiles
+  * Don't install new clamd profile: clamav-daemon ships one
+  * Adjust to profile renamed upstream
+
+ -- intrigeri <intrigeri@debian.org>  Sun, 16 Jul 2023 14:39:37 +0000
+
 apparmor (3.0.8-3) unstable; urgency=medium
 
   * Cherry-pick a few small, targeted fixes from upstream 3.0 branch

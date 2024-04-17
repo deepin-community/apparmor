@@ -812,22 +812,17 @@ def ask_exec(hashlog):
     '''ask the user about exec events (requests to execute another program) and which exec mode to use'''
 
     for aamode in hashlog:
-        for profile in hashlog[aamode]:
-            if '//' in hashlog[aamode][profile]['final_name'] and hashlog[aamode][profile]['exec'].keys():
-                # TODO: is this really needed? Or would removing Cx from the options be good enough?
-                aaui.UI_Important('WARNING: Ignoring exec event in %s, nested profiles are not supported yet.' % hashlog[aamode][profile]['final_name'])
-                continue
+        for full_profile in hashlog[aamode]:
+            profile, hat = split_name(full_profile)  # XXX temporary solution to avoid breaking the existing code
 
-            hat = profile  # XXX temporary solution to avoid breaking the existing code
-
-            for exec_target in hashlog[aamode][profile]['exec']:
-                for target_profile in hashlog[aamode][profile]['exec'][exec_target]:
+            for exec_target in hashlog[aamode][full_profile]['exec']:
+                for target_profile in hashlog[aamode][full_profile]['exec'][exec_target]:
                     to_name = ''
 
                     if os.path.isdir(exec_target):
                         raise AppArmorBug('exec permissions requested for directory %s. This should not happen - please open a bugreport!' % exec_target)
 
-                    if not aa[profile][hat]:
+                    if not aa[profile].get(hat):
                         continue  # ignore log entries for non-existing profiles
 
                     exec_event = FileRule(exec_target, None, FileRule.ANY_EXEC, FileRule.ALL, owner=False, log_event=True)
@@ -848,7 +843,9 @@ def ask_exec(hashlog):
                             ##options = 'i'
 
                         # Don't allow hats to cx?
-                        options.replace('c', '')
+                        if '//' in hashlog[aamode][full_profile]['final_name'] and hashlog[aamode][full_profile]['exec'].keys():
+                            options = options.replace('c', '')
+
                         # Add deny to options
                         options += 'd'
                         # Define the default option
@@ -1000,7 +997,12 @@ def ask_exec(hashlog):
                             hashlog[aamode][target_profile]['final_name'] = exec_target
 
                         # Check profile exists for px
-                        if not os.path.exists(get_profile_filename_from_attachment(exec_target, True)):
+                        if exec_target.startswith(('/', '@', '{')):
+                              prof_filename = get_profile_filename_from_attachment(exec_target, True)
+                        else:  # named exec
+                              prof_filename = get_profile_filename_from_profile_name(exec_target, True)
+
+                        if not os.path.exists(prof_filename):
                             ynans = 'y'
                             if 'i' in exec_mode:
                                 ynans = aaui.UI_YesNo(_('A profile for %s does not exist.\nDo you want to create one?') % exec_target, 'n')
@@ -1642,7 +1644,7 @@ def collapse_log(hashlog, ignore_null_profiles=True):
                                             elif access == 'eavesdrop':
                                                 dbus_event = DbusRule(access, bus, DbusRule.ALL,    DbusRule.ALL,   DbusRule.ALL, DbusRule.ALL, DbusRule.ALL,   DbusRule.ALL, log_event=True)
                                             else:
-                                                raise AppArmorBug('unexpected dbus access: %s')
+                                                raise AppArmorBug('unexpected dbus access: {}'.format(access))
 
                                             if not hat_exists or not is_known_rule(aa[profile][hat], 'dbus', dbus_event):
                                                 log_dict[aamode][profile][hat]['dbus'].add(dbus_event)
@@ -1656,6 +1658,9 @@ def collapse_log(hashlog, ignore_null_profiles=True):
 
                 ptrace = hashlog[aamode][full_profile]['ptrace']
                 for peer in ptrace.keys():
+                    if '//null-' in peer:
+                        continue  # ignore null-* peers
+
                     for access in ptrace[peer].keys():
                         ptrace_event = PtraceRule(access, peer, log_event=True)
                         if not hat_exists or not is_known_rule(aa[profile][hat], 'ptrace', ptrace_event):
@@ -1663,6 +1668,9 @@ def collapse_log(hashlog, ignore_null_profiles=True):
 
                 sig = hashlog[aamode][full_profile]['signal']
                 for peer in sig.keys():
+                    if '//null-' in peer:
+                        continue  # ignore null-* peers
+
                     for access in sig[peer].keys():
                         for signal in sig[peer][access].keys():
                             signal_event = SignalRule(access, signal, peer, log_event=True)

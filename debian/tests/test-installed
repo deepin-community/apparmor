@@ -1,22 +1,24 @@
 #!/bin/sh
 
 set -e
+set -u
 
 TEST_DIRS="binutils parser"
 
 SOURCE_DIR=$(pwd)
 
 WORKDIR=$(mktemp -d)
+# shellcheck disable=SC2064
 trap "rm -rf $WORKDIR" 0 INT QUIT ABRT PIPE TERM
 
-cp -a common $WORKDIR/
-cp -a libraries $WORKDIR/
+cp -a common "$WORKDIR"/
+cp -a libraries "$WORKDIR"/
 
 for dir in $TEST_DIRS ; do
-   mkdir -p $WORKDIR/$(dirname $dir)
-   cp -a $SOURCE_DIR/$dir $WORKDIR/$dir
+   mkdir -p "$WORKDIR/$(dirname "$dir")"
+   cp -a "$SOURCE_DIR/$dir" "$WORKDIR/$dir"
    (
-      cd $WORKDIR/$dir
+      cd "$WORKDIR/$dir"
       echo "Running tests in $WORKDIR/$dir"
       if [ ! -f Makefile ] ; then
 	 if [ -x autogen.sh ] ; then
@@ -30,5 +32,5 @@ for dir in $TEST_DIRS ; do
       fi
       USE_SYSTEM=1 make tests V=1
    )
-   rm -rf $WORKDIR/$dir
+   rm -rf "${WORKDIR:?}/$dir"
 done

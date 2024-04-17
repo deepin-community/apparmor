@@ -6,13 +6,13 @@ Subject: Allow reading time configuration from /etc/writable,
 Forwarded: No, that's an Ubuntu specific hack
 Bug-Ubuntu: https://launchpad.net/bugs/1227520
 ---
- profiles/apparmor.d/abstractions/base                     | 1 +
- profiles/apparmor.d/abstractions/ubuntu-browsers.d/java   | 2 ++
- profiles/apparmor/profiles/extras/usr.lib.firefox.firefox | 1 +
+ profiles/apparmor.d/abstractions/base                   | 1 +
+ profiles/apparmor.d/abstractions/ubuntu-browsers.d/java | 2 ++
+ profiles/apparmor/profiles/extras/firefox               | 1 +
  3 files changed, 4 insertions(+)
 
 diff --git a/profiles/apparmor.d/abstractions/base b/profiles/apparmor.d/abstractions/base
-index 4853bef..9100968 100644
+index 0bd7fda..7275fc8 100644
 --- a/profiles/apparmor.d/abstractions/base
 +++ b/profiles/apparmor.d/abstractions/base
 @@ -32,6 +32,7 @@
@@ -43,11 +43,11 @@ index 507d62a..ae93c75 100644
  
      @{PROC}/@{pid}/ r,
      @{PROC}/@{pid}/fd/ r,
-diff --git a/profiles/apparmor/profiles/extras/usr.lib.firefox.firefox b/profiles/apparmor/profiles/extras/usr.lib.firefox.firefox
-index 6d869d6..9678543 100644
---- a/profiles/apparmor/profiles/extras/usr.lib.firefox.firefox
-+++ b/profiles/apparmor/profiles/extras/usr.lib.firefox.firefox
-@@ -40,6 +40,7 @@ include <tunables/global>
+diff --git a/profiles/apparmor/profiles/extras/firefox b/profiles/apparmor/profiles/extras/firefox
+index 051a4b4..f25383a 100644
+--- a/profiles/apparmor/profiles/extras/firefox
++++ b/profiles/apparmor/profiles/extras/firefox
+@@ -40,6 +40,7 @@ profile firefox /usr/lib/firefox{,-[0-9]*}/firefox{,*[^s][^h]} {
    /tmp/.X[0-9]*-lock r,
  
    /etc/timezone r,

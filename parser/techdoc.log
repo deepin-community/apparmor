@@ -1,8 +1,8 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2022.7.2)  21 NOV 2022 16:55
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2023.5.30)  5 FEB 2024 14:07
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**\def\fixedpdfdate{20221122005432+0000}\input techdoc.tex
+**\def\fixedpdfdate{20240202223548+0000}\input techdoc.tex
  (./techdoc.tex
 (/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
 Document Class: article 2021/10/04 v1.4n Standard LaTeX document class
@@ -250,7 +250,7 @@ Package rerunfilecheck Info: File `techdoc.out' has not changed.
  ) 
 Here is how much of TeX's memory you used:
  7473 strings out of 480247
- 118156 string characters out of 5896152
+ 118156 string characters out of 5896151
  416357 words of memory out of 5000000
  25296 multiletter control sequences out of 15000+600000
  475140 words of font info for 49 fonts, out of 8000000 for 9000

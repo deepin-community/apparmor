@@ -4,6 +4,9 @@ etc/apparmor.d/local/*
 # Installed by dh_apache2
 usr/lib/apache2/modules/mod_apparmor.so
 
+# Managed by the clamav-daemon package
+usr/share/apparmor/extra-profiles/usr.sbin.clamd
+
 # Managed by the cups-daemon package
 usr/share/apparmor/extra-profiles/usr.sbin.cupsd
 
@@ -20,7 +23,10 @@ etc/apparmor.d/usr.sbin.ntpd
 # Not installed on purpose (see #866636)
 usr/lib/*/libapparmor.la
 
+# Not installed on purpose (see #1039668)
+etc/apparmor.d/abstractions/ubuntu-browsers.d/chromium-browser
+
 # Not installed on purpose
 etc/apparmor.d/usr.lib.apache2.mpm-prefork.apache2
 etc/apparmor.d/usr.sbin.winbindd
-usr/share/apparmor/extra-profiles/usr.bin.chromium-browser
+usr/share/apparmor/extra-profiles/chromium_browser

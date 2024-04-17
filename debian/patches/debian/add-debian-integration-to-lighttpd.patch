@@ -9,7 +9,7 @@ Ubuntu-Bug: https://bugs.launchpad.net/ubuntu/+source/apparmor/+bug/582814
  1 file changed, 1 insertion(+)
 
 diff --git a/profiles/apparmor/profiles/extras/usr.sbin.lighttpd b/profiles/apparmor/profiles/extras/usr.sbin.lighttpd
-index af11fb5..c21b95c 100644
+index b331509..6c391e2 100644
 --- a/profiles/apparmor/profiles/extras/usr.sbin.lighttpd
 +++ b/profiles/apparmor/profiles/extras/usr.sbin.lighttpd
 @@ -60,6 +60,7 @@ include <tunables/global>

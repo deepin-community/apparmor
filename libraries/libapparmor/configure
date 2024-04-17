@@ -3092,7 +3092,7 @@ fi
 # Define the identity of the package.
 
  PACKAGE=libapparmor1
- VERSION=3.0.8
+ VERSION=3.0.13
 
 
 printf "%s\n" "#define PACKAGE \"$PACKAGE\"" >>confdefs.h
