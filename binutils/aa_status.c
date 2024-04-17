@@ -454,6 +454,7 @@ static int detailed_output(FILE *json) {
 	const char *process_statuses[] = {"enforce", "complain", "unconfined", "mixed", "kill"};
 	int ret;
 	size_t i;
+	int need_finish = 0;
 
 	ret = get_profiles(&profiles, &nprofiles);
 	if (ret != 0) {
@@ -534,16 +535,20 @@ static int detailed_output(FILE *json) {
 				} else {
 					fprintf(json, "%s\"%s\": [{\"profile\": \"%s\", \"pid\": \"%s\", \"status\": \"%s\"}",
 					       // first element will be a unique executable
-					       i == 0 && j == 0 ? "" : "], ",
+					       j == 0 && !need_finish ? "" : "], ",
 					       filtered[j].exe, filtered[j].profile, filtered[j].pid, filtered[j].mode);
 				}
 
+				need_finish = 1;
 			}
 		}
 		free_processes(filtered, nfiltered);
 	}
 	if (json) {
-		fprintf(json, "%s}}\n", nprocesses > 0 ? "]" : "");
+		if (need_finish > 0) {
+			fprintf(json, "]");
+		}
+		fprintf(json, "}}\n");
 	}
 
 exit:

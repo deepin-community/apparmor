@@ -20,6 +20,7 @@
 #define __AA_MOUNT_H
 
 #include <ostream>
+#include <vector>
 
 #include "parser.h"
 #include "rule.h"
@@ -39,6 +40,8 @@
 #define MS_MAND		(1 << 6)
 #define MS_NOMAND	0
 #define MS_DIRSYNC	(1 << 7)
+#define MS_SYMFOLLOW	0
+#define MS_NOSYMFOLLOW	(1 << 8)
 #define MS_NODIRSYNC	0
 #define MS_NOATIME	(1 << 10)
 #define MS_ATIME	0
@@ -61,6 +64,7 @@
 #define MS_IVERSION	(1 << 23)
 #define MS_NOIVERSION	0
 #define MS_STRICTATIME	(1 << 24)
+#define MS_LAZYTIME	(1 << 25)
 #define MS_NOUSER	(1 << 31)
 #define MS_USER		0
 
@@ -74,12 +78,14 @@
 
 #define MS_ALL_FLAGS	(MS_RDONLY | MS_NOSUID | MS_NODEV | MS_NOEXEC | \
 			 MS_SYNC | MS_REMOUNT | MS_MAND | MS_DIRSYNC | \
+			 MS_NOSYMFOLLOW | \
 			 MS_NOATIME | MS_NODIRATIME | MS_BIND | MS_RBIND | \
 			 MS_MOVE | MS_VERBOSE | MS_ACL | \
 			 MS_UNBINDABLE | MS_RUNBINDABLE | \
 			 MS_PRIVATE | MS_RPRIVATE | \
 			 MS_SLAVE | MS_RSLAVE | MS_SHARED | MS_RSHARED | \
-			 MS_RELATIME | MS_IVERSION | MS_STRICTATIME | MS_USER)
+			 MS_RELATIME | MS_IVERSION | MS_STRICTATIME | \
+			 MS_LAZYTIME | MS_USER)
 
 /* set of flags we don't use but define (but not with the kernel values)
  *  for MNT_FLAGS
@@ -94,16 +100,15 @@
 			 MS_KERNMOUNT | MS_STRICTATIME)
 
 #define MS_BIND_FLAGS (MS_BIND | MS_RBIND)
-#define MS_MAKE_FLAGS ((MS_UNBINDABLE | MS_RUNBINDABLE | \
+#define MS_MAKE_CMDS (MS_UNBINDABLE | MS_RUNBINDABLE | \
 			MS_PRIVATE | MS_RPRIVATE | \
-			MS_SLAVE | MS_RSLAVE | MS_SHARED | MS_RSHARED) | \
-		       (MS_ALL_FLAGS & ~(MNT_FLAGS)))
+			MS_SLAVE | MS_RSLAVE | MS_SHARED | MS_RSHARED)
+#define MS_MAKE_FLAGS  (MS_ALL_FLAGS & ~(MNT_FLAGS))
 #define MS_MOVE_FLAGS (MS_MOVE)
 
-#define MS_CMDS (MS_MOVE | MS_REMOUNT | MS_BIND | MS_RBIND | \
-		 MS_UNBINDABLE | MS_RUNBINDABLE | MS_PRIVATE | MS_RPRIVATE | \
-		 MS_SLAVE | MS_RSLAVE | MS_SHARED | MS_RSHARED)
+#define MS_CMDS (MS_MOVE | MS_REMOUNT | MS_BIND | MS_RBIND | MS_MAKE_CMDS)
 #define MS_REMOUNT_FLAGS (MS_ALL_FLAGS & ~(MS_CMDS & ~MS_REMOUNT & ~MS_BIND & ~MS_RBIND))
+#define MS_NEW_FLAGS (MS_ALL_FLAGS & ~MS_CMDS)
 
 #define MNT_SRC_OPT 1
 #define MNT_DST_OPT 2
@@ -121,6 +126,19 @@
 
 
 class mnt_rule: public rule_t {
+	int gen_policy_remount(Profile &prof, int &count, unsigned int flags,
+			       unsigned int opt_flags);
+	int gen_policy_bind_mount(Profile &prof, int &count, unsigned int flags,
+				  unsigned int opt_flags);
+	int gen_policy_change_mount_type(Profile &prof, int &count,
+					 unsigned int flags,
+					 unsigned int opt_flags);
+	int gen_policy_move_mount(Profile &prof, int &count, unsigned int flags,
+				  unsigned int opt_flags);
+	int gen_policy_new_mount(Profile &prof, int &count, unsigned int flags,
+				 unsigned int opt_flags);
+	int gen_flag_rules(Profile &prof, int &count, unsigned int flags,
+			   unsigned int opt_flags);
 public:
 	char *mnt_point;
 	char *device;
@@ -128,7 +146,7 @@ public:
 	struct value_list *dev_type;
 	struct value_list *opts;
 
-	unsigned int flags, inv_flags;
+	std::vector<unsigned int> flagsv, opt_flagsv;
 
 	int allow, audit;
 	int deny;

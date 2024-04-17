@@ -20,14 +20,14 @@ Build-Depends: apache2-dev,
                libpam-dev,
                libtool,
                perl <!nocheck>,
-               pkg-config,
+               pkgconf,
                po-debconf,
                python3:any,
                python3-all:any,
                python3-all-dev:any,
                python3-setuptools,
                swig
-Standards-Version: 4.6.1
+Standards-Version: 4.6.2
 Vcs-Browser: https://salsa.debian.org/apparmor-team/apparmor/tree/debian/unstable
 Vcs-Git: https://salsa.debian.org/apparmor-team/apparmor.git -b debian/unstable
 Homepage: https://apparmor.net/

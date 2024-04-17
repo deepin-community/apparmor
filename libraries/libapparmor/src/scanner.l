@@ -121,6 +121,8 @@ key_namespace		"namespace"
 key_mask		"mask"
 key_denied_mask		"denied_mask"
 key_requested_mask	"requested_mask"
+key_denied		"denied"
+key_requested		"requested"
 key_attribute		"attribute"
 key_task		"task"
 key_parent		"parent"
@@ -163,11 +165,13 @@ key_dest		"dest"
 key_path		"path"
 key_interface		"interface"
 key_member		"member"
+key_method		"method"
 key_signal		"signal"
 key_peer		"peer"
 key_fstype		"fstype"
 key_flags		"flags"
 key_srcname		"srcname"
+key_class		"class"
 audit			"audit"
 
 /* network addrs */
@@ -309,6 +313,8 @@ yy_flex_debug = 0;
 {key_mask}		{ return(TOK_KEY_MASK); }
 {key_denied_mask}	{ return(TOK_KEY_DENIED_MASK); }
 {key_requested_mask}	{ return(TOK_KEY_REQUESTED_MASK); }
+{key_denied}		{ return(TOK_KEY_DENIED_MASK); }
+{key_requested}		{ return(TOK_KEY_REQUESTED_MASK); }
 {key_attribute}		{ BEGIN(sub_id); return(TOK_KEY_ATTRIBUTE); }
 {key_task}		{ return(TOK_KEY_TASK); }
 {key_parent}		{ return(TOK_KEY_PARENT); }
@@ -350,11 +356,13 @@ yy_flex_debug = 0;
 {key_path}		{ return(TOK_KEY_PATH); }
 {key_interface}		{ return(TOK_KEY_INTERFACE); }
 {key_member}		{ return(TOK_KEY_MEMBER); }
+{key_method}		{ return(TOK_KEY_MEMBER); }
 {key_signal}		{ BEGIN(sub_id); return(TOK_KEY_SIGNAL); }
 {key_peer}		{ BEGIN(safe_string); return(TOK_KEY_PEER); }
 {key_fstype}		{ return(TOK_KEY_FSTYPE); }
 {key_flags}		{ BEGIN(safe_string); return(TOK_KEY_FLAGS); }
 {key_srcname}		{ BEGIN(safe_string); return(TOK_KEY_SRCNAME); }
+{key_class}		{ BEGIN(safe_string); return(TOK_KEY_CLASS); }
 
 {socklogd_kernel}	{ BEGIN(dmesg_timestamp); return(TOK_SOCKLOGD_KERNEL); }
 {syslog_kernel}		{ BEGIN(dmesg_timestamp); return(TOK_SYSLOG_KERNEL); }

@@ -10,7 +10,7 @@ Forwarded: not-needed
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/libraries/libapparmor/swig/python/Makefile.am b/libraries/libapparmor/swig/python/Makefile.am
-index 04edff0..1a03b82 100644
+index bf05fe0..406cb83 100644
 --- a/libraries/libapparmor/swig/python/Makefile.am
 +++ b/libraries/libapparmor/swig/python/Makefile.am
 @@ -17,7 +17,7 @@ all-local: libapparmor_wrap.c setup.py
@@ -23,7 +23,7 @@ index 04edff0..1a03b82 100644
  clean-local:
  	if test -x "$(PYTHON)"; then $(PYTHON) setup.py clean; fi
 diff --git a/utils/Makefile b/utils/Makefile
-index 1f08f25..86fea54 100644
+index 91a1510..01e06a2 100644
 --- a/utils/Makefile
 +++ b/utils/Makefile
 @@ -58,7 +58,7 @@ install: ${MANPAGES} ${HTMLMANPAGES}

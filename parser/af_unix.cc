@@ -111,8 +111,7 @@ unix_rule::unix_rule(unsigned int type_p, bool audit_p, bool denied):
 
 unix_rule::unix_rule(int mode_p, struct cond_entry *conds,
 		     struct cond_entry *peer_conds):
-	af_rule("unix"), addr(NULL), peer_addr(NULL),
-	audit(0), deny(0)
+	af_rule("unix"), addr(NULL), peer_addr(NULL)
 {
 	move_conditionals(conds);
 	move_peer_conditionals(peer_conds);
@@ -136,7 +135,7 @@ ostream &unix_rule::dump_local(ostream &os)
 {
 	af_rule::dump_local(os);
 	if (addr)
-		os << "addr='" << addr << "'";
+		os << " addr='" << addr << "'";
 	return os;
 }
 
@@ -144,7 +143,7 @@ ostream &unix_rule::dump_peer(ostream &os)
 {
 	af_rule::dump_peer(os);
 	if (peer_addr)
-		os << "addr='" << peer_addr << "'";
+		os << " addr='" << peer_addr << "'";
 	return os;
 }
 

@@ -14,6 +14,8 @@ etc/apparmor.d/usr.lib.dovecot.auth /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.config /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.deliver /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.dict /usr/share/apparmor/extra-profiles/
+etc/apparmor.d/usr.lib.dovecot.director /usr/share/apparmor/extra-profiles/
+etc/apparmor.d/usr.lib.dovecot.doveadm-server /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.dovecot-auth /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.dovecot-lda /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.imap /usr/share/apparmor/extra-profiles/
@@ -24,6 +26,7 @@ etc/apparmor.d/usr.lib.dovecot.managesieve /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.managesieve-login /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.pop3 /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.pop3-login /usr/share/apparmor/extra-profiles/
+etc/apparmor.d/usr.lib.dovecot.replicator /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.script-login /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.ssl-params /usr/share/apparmor/extra-profiles/
 etc/apparmor.d/usr.lib.dovecot.stats /usr/share/apparmor/extra-profiles/
@@ -37,6 +40,7 @@ etc/apparmor.d/usr.sbin.nscd
 etc/apparmor.d/usr.sbin.smbd
 etc/apparmor.d/usr.sbin.smbldap-useradd
 etc/apparmor.d/usr.sbin.traceroute
+etc/apparmor.d/zgrep
 usr/share/apparmor/extra-profiles/README
 usr/share/apparmor/extra-profiles/bin.netstat
 usr/share/apparmor/extra-profiles/etc.cron.daily.logrotate
@@ -71,6 +75,8 @@ usr/share/apparmor/extra-profiles/usr.bin.mlmmj-unsub
 usr/share/apparmor/extra-profiles/usr.bin.opera
 usr/share/apparmor/extra-profiles/usr.bin.passwd
 usr/share/apparmor/extra-profiles/usr.bin.procmail
+usr/share/apparmor/extra-profiles/usr.bin.pyzorsocket
+usr/share/apparmor/extra-profiles/usr.bin.razorsocket
 usr/share/apparmor/extra-profiles/usr.bin.skype
 usr/share/apparmor/extra-profiles/usr.bin.spamc
 usr/share/apparmor/extra-profiles/usr.bin.svnserve
@@ -80,8 +86,8 @@ usr/share/apparmor/extra-profiles/usr.lib.GConf.2.gconfd-2
 usr/share/apparmor/extra-profiles/usr.lib.RealPlayer10.realplay
 usr/share/apparmor/extra-profiles/usr.lib.bonobo.bonobo-activation-server
 usr/share/apparmor/extra-profiles/usr.lib.evolution-data-server.evolution-data-server-1.10
-usr/share/apparmor/extra-profiles/usr.lib.firefox.firefox
-usr/share/apparmor/extra-profiles/usr.lib.firefox.firefox.sh
+usr/share/apparmor/extra-profiles/firefox
+usr/share/apparmor/extra-profiles/firefox.sh
 usr/share/apparmor/extra-profiles/usr.lib.firefox.mozilla-xremote-client
 usr/share/apparmor/extra-profiles/usr.lib.man-db.man
 usr/share/apparmor/extra-profiles/postfix-anvil
@@ -113,6 +119,7 @@ usr/share/apparmor/extra-profiles/postfix-verify
 usr/share/apparmor/extra-profiles/postfix-virtual
 usr/share/apparmor/extra-profiles/usr.lib64.GConf.2.gconfd-2
 usr/share/apparmor/extra-profiles/usr.sbin.dhcpd
+usr/share/apparmor/extra-profiles/usr.sbin.haproxy
 usr/share/apparmor/extra-profiles/usr.sbin.httpd2-prefork
 usr/share/apparmor/extra-profiles/usr.sbin.imapd
 usr/share/apparmor/extra-profiles/usr.sbin.in.fingerd

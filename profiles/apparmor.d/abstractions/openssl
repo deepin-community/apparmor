@@ -11,11 +11,10 @@
   abi <abi/3.0>,
 
   /etc/ssl/openssl.cnf r,
+  /etc/ssl/openssl-*.cnf r,
   /etc/ssl/{engdef,engines}.d/ r,
   /etc/ssl/{engdef,engines}.d/*.cnf r,
   /usr/share/ssl/openssl.cnf r,
-  @{PROC}/sys/crypto/fips_enabled r,
-
 
   # Include additions to the abstraction
   include if exists <abstractions/openssl.d>
