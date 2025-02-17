@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "APPARMOR 7"
-.TH APPARMOR 7 "2024-02-02" "AppArmor 3.0.13" "AppArmor"
+.TH APPARMOR 7 "2024-02-02" "AppArmor 3.1.7" "AppArmor"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -205,6 +205,69 @@ cannot call the following system calls:
 \&        iopl(2) ptrace(2) reboot(2) setdomainname(2)
 \&        sethostname(2) swapoff(2) swapon(2) sysctl(2)
 .Ve
+.SS "Complain mode"
+.IX Subsection "Complain mode"
+Instead of denying access to resources the profile does not have a rule for
+AppArmor can \*(L"allow\*(R" the access and log a message for the operation
+that triggers it. This is called \fIcomplain mode\fR. It is important to
+note that rules that are present in the profile are still applied, so
+allow rules will still quiet or force audit messages, and deny rules
+will still result in denials and quieting of denial messages (see
+\&\fITurn off deny audit quieting\fR if this is a problem).
+.PP
+Complain mode can be used to develop profiles incrementally as an
+application is exercised. The logged accesses can be added to the
+profile and then can the application further excercised to discover further
+additions that are needed. Because AppArmor allows the accesses the
+application will behave as it would if AppArmor was not confining it.
+.PP
+\&\fBWarning\fR complain mode does not provide any security, only
+auditing, while it is enabled. It should not be used in a hostile
+environment or bad behaviors may be logged and added to the profile
+as if they are resource accesses that should be used by the
+application.
+.PP
+\&\fBNote\fR complain mode can be very noisy with new or empty profiles,
+but with developed profiles might not log anything if the profile
+covers the application behavior well. See \fIAudit Rate Limiting\fR if
+complain mode is generating too many log messages.
+.PP
+To set a profile and any children or hat profiles the profile may contain
+into complain mode use
+.PP
+.Vb 1
+\&        aa\-complain /etc/apparmor.d/<the\-application>
+.Ve
+.PP
+To manually set a specific profile in complain mode, add the
+\&\f(CW\*(C`complain\*(C'\fR flag, and then manually reload the profile:
+.PP
+.Vb 1
+\&        profile foo flags=(complain) { ... }
+.Ve
+.PP
+Note that the \f(CW\*(C`complain\*(C'\fR flag must also be added manually to any
+hats or children profiles of the profile or they will continue to
+use the previous mode.
+.PP
+To enable complain mode globally, run:
+.PP
+.Vb 1
+\&        echo \-n complain > /sys/module/apparmor/parameters/mode
+.Ve
+.PP
+or to set it on boot add:
+.PP
+.Vb 1
+\&        apparmor.mode=complain
+.Ve
+.PP
+as a kernel boot paramenter.
+.PP
+\&\fBWarning\fR Setting complain mode gloabally disables all apparmor
+security protections. It can be useful during debugging or profile
+development, but setting it selectively on a per profile basis is
+safer.
 .SH "ERRORS"
 .IX Header "ERRORS"
 When a confined process tries to access a file it does not have permission
@@ -267,6 +330,14 @@ To enable debug mode, run:
 .Vb 1
 \&        echo 1 > /sys/module/apparmor/parameters/debug
 .Ve
+.PP
+or to set it on boot add:
+.PP
+.Vb 1
+\&        apparmor.debug=1
+.Ve
+.PP
+as a kernel boot paramenter.
 .SS "Turn off deny audit quieting"
 .IX Subsection "Turn off deny audit quieting"
 By default, operations that trigger \f(CW\*(C`deny\*(C'\fR rules are not logged.
@@ -277,6 +348,14 @@ To turn off deny audit quieting, run:
 .Vb 1
 \&        echo \-n noquiet >/sys/module/apparmor/parameters/audit
 .Ve
+.PP
+or to set it on boot add:
+.PP
+.Vb 1
+\&        apparmor.audit=noquiet
+.Ve
+.PP
+as a kernel boot paramenter.
 .SS "Force audit mode"
 .IX Subsection "Force audit mode"
 AppArmor can log a message for every operation that triggers a rule
@@ -296,6 +375,16 @@ To enable force audit mode globally, run:
 .Vb 1
 \&        echo \-n all > /sys/module/apparmor/parameters/audit
 .Ve
+.PP
+or to set it on boot add:
+.PP
+.Vb 1
+\&        apparmor.audit=all
+.Ve
+.PP
+as a kernel boot paramenter.
+.PP
+\&\fBAudit Rate Limiting\fR
 .PP
 If auditd is not running, to avoid losing too many of the extra log
 messages, you will likely have to turn off rate limiting by doing:

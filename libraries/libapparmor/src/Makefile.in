@@ -579,9 +579,13 @@ INCLUDES = $(all_includes)
 # 3. If any interfaces have been added, removed, or changed since the last
 #    update,
 #    - increment AA_LIB_CURRENT
+#      - by 1 if bugfix release
+#      - by 5 on larger releases. This gives room to fix library interface
+#        problems in the unlikely event where an interface has to break.
 #    - set AA_LIB_REVISION to 0.
 # 4. If any interfaces have been added since the last public release, then
-#    - increment AA_LIB_AGE.
+#    - increment AA_LIB_AGE by the same amount that AA_LIB_CURRENT was
+#      incremented.
 # 5. If any interfaces have been removed or changed since the last public
 #    release, then
 #    - set AA_LIB_AGE to 0.
@@ -594,10 +598,11 @@ INCLUDES = $(all_includes)
 # For more information, see:
 # http://www.gnu.org/software/libtool/manual/html_node/Libtool-versioning.html
 #
-AA_LIB_CURRENT = 9
-AA_LIB_REVISION = 6
-AA_LIB_AGE = 8
-EXPECTED_SO_NAME = libapparmor.so.1.8.6
+# After changing the AA_LIB_* variables, also update EXPECTED_SO_NAME.
+AA_LIB_CURRENT = 13
+AA_LIB_REVISION = 3
+AA_LIB_AGE = 12
+EXPECTED_SO_NAME = libapparmor.so.1.12.3
 SUFFIXES = .pc.in .pc
 COMMONDIR = $(top_srcdir)/../../common/
 BUILT_SOURCES = grammar.h scanner.h af_protos.h

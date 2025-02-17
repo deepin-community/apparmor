@@ -20,35 +20,37 @@
 # Note: --version=... must be the last argument to this script
 #
 
-from setuptools.command.install import install as _install
-from setuptools import setup
 import os
 import shutil
 import sys
 
-class Install(_install, object):
-    '''Override setuptools to install the files where we want them.'''
+from setuptools import setup
+from setuptools.command.install import install as _install
+
+
+class Install(_install):
+    """Override setuptools to install the files where we want them."""
     def run(self):
         # Now byte-compile everything
-        super(Install, self).run()
+        super().run()
 
         prefix = self.prefix
-        if self.root != None:
+        if self.root is not None:
             prefix = self.root
 
         # Install scripts, configuration files and data
-        scripts = ['/usr/bin/aa-easyprof']
+        scripts = ('/usr/bin/aa-easyprof',)
         self.mkpath(prefix + os.path.dirname(scripts[0]))
         for s in scripts:
             f = prefix + s
             self.copy_file(os.path.basename(s), f)
 
-        configs = ['easyprof/easyprof.conf']
+        configs = ('easyprof/easyprof.conf',)
         self.mkpath(prefix + "/etc/apparmor")
         for c in configs:
             self.copy_file(c, os.path.join(prefix + "/etc/apparmor", os.path.basename(c)))
 
-        data = ['easyprof/templates', 'easyprof/policygroups']
+        data = ('easyprof/templates', 'easyprof/policygroups')
         self.mkpath(prefix + "/usr/share/apparmor/easyprof")
         for d in data:
             self.copy_tree(d, os.path.join(prefix + "/usr/share/apparmor/easyprof", os.path.basename(d)))
@@ -61,21 +63,22 @@ shutil.copytree('apparmor', 'staging')
 # Support the --version=... since this will be part of a Makefile
 version = "unknown-version"
 if "--version=" in sys.argv[-1]:
-    version=sys.argv[-1].split('=')[1]
+    version = sys.argv[-1].split('=')[1]
     sys.argv = sys.argv[0:-1]
 
-setup (name='apparmor',
-       version=version,
-       description='Python libraries for AppArmor utilities',
-       long_description='Python libraries for AppArmor utilities',
-       author='AppArmor Developers',
-       author_email='apparmor@lists.ubuntu.com',
-       url='https://gitlab.com/apparmor/apparmor',
-       license='GPL-2',
-       cmdclass={'install': Install},
-       package_dir={'apparmor': 'staging'},
-       packages=['apparmor', 'apparmor.rule'],
-       py_modules=['apparmor.easyprof']
+setup(
+    name='apparmor',
+    version=version,
+    description='Python libraries for AppArmor utilities',
+    long_description='Python libraries for AppArmor utilities',
+    author='AppArmor Developers',
+    author_email='apparmor@lists.ubuntu.com',
+    url='https://gitlab.com/apparmor/apparmor',
+    license='GPL-2',
+    cmdclass={'install': Install},
+    package_dir={'apparmor': 'staging'},
+    packages=['apparmor', 'apparmor.rule'],
+    py_modules=['apparmor.easyprof']
 )
 
 shutil.rmtree('staging')

@@ -2,7 +2,6 @@
 
 include /usr/share/dpkg/architecture.mk
 include /usr/share/dpkg/pkg-info.mk
-include /usr/share/dpkg/architecture.mk
 
 export DEB_BUILD_MAINT_OPTIONS = hardening=+bindnow optimize=+lto
 

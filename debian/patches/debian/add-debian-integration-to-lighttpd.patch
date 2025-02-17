@@ -2,7 +2,9 @@ From: Debian AppArmor Team <pkg-apparmor-team@lists.alioth.debian.org>
 Date: Mon, 29 Jan 2018 12:26:43 +0000
 Subject: Add entries for lighttpd to work in a Debian/Ubuntu install
 
-Forwarded: no (Debian/Ubuntu specific)
+This is Debian/Ubuntu specific, so no need to forward upstream.
+
+Forwarded: not-needed
 Ubuntu-Bug: https://bugs.launchpad.net/ubuntu/+source/apparmor/+bug/582814
 ---
  profiles/apparmor/profiles/extras/usr.sbin.lighttpd | 1 +

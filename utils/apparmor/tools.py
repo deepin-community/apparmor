@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------
 #    Copyright (C) 2013 Kshitij Gupta <kgupta8592@gmail.com>
-#    Copyright (C) 2015-2018 Christian Boltz <apparmor@cboltz.de>
+#    Copyright (C) 2015-2022 Christian Boltz <apparmor@cboltz.de>
 #
 #    This program is free software; you can redistribute it and/or
 #    modify it under the terms of version 2 of the GNU General Public
@@ -14,26 +14,29 @@
 # ----------------------------------------------------------------------
 import os
 import sys
+from shutil import which
 
 import apparmor.aa as apparmor
 import apparmor.ui as aaui
-from apparmor.common import user_perm, cmd
-
-# setup module translations
+from apparmor.common import AppArmorException, cmd, is_skippable_file, user_perm
 from apparmor.translations import init_translation
+
 _ = init_translation()
+
 
 class aa_tools:
     def __init__(self, tool_name, args):
-        apparmor.init_aa(profiledir=args.dir)
+        apparmor.init_aa(profiledir=args.dir, confdir=args.configdir)
+
+        if not user_perm(apparmor.profile_dir):
+            raise AppArmorException("Cannot write to profile directory: %s" % (apparmor.profile_dir))
 
         self.name = tool_name
         self.profiling = args.program
-        self.check_profile_dir()
         self.silent = None
         self.do_reload = args.do_reload
 
-        if tool_name in ['audit']:
+        if tool_name == 'audit':
             self.remove = args.remove
         elif tool_name == 'autodep':
             self.force = args.force
@@ -41,12 +44,8 @@ class aa_tools:
         elif tool_name == 'cleanprof':
             self.silent = args.silent
 
-    def check_profile_dir(self):
-        if not user_perm(apparmor.profile_dir):
-            raise apparmor.AppArmorException("Cannot write to profile directory: %s" % (apparmor.profile_dir))
-
     def get_next_to_profile(self):
-        '''Iterator function to walk the list of arguments passed'''
+        """Iterator function to walk the list of arguments passed"""
 
         for p in self.profiling:
             if not p:
@@ -66,12 +65,12 @@ class aa_tools:
                     else:
                         profile = apparmor.get_profile_filename_from_attachment(fq_path, True)
             else:
-                which = apparmor.which(p)
+                which_ = which(p)
                 if self.name == 'cleanprof' and p in apparmor.aa:
                     program = p  # not really correct, but works
                     profile = p
-                elif which is not None:
-                    program = apparmor.get_full_path(which)
+                elif which_ is not None:
+                    program = apparmor.get_full_path(which_)
                     if self.name == 'cleanprof':
                         profile = program
                     else:
@@ -84,7 +83,8 @@ class aa_tools:
                         profile = apparmor.get_full_path(os.path.join(apparmor.profile_dir, p)).strip()
                 else:
                     if '/' not in p:
-                        aaui.UI_Info(_("Can't find %(program)s in the system path list. If the name of the application\nis correct, please run 'which %(program)s' as a user with correct PATH\nenvironment set up in order to find the fully-qualified path and\nuse the full path as parameter.") % { 'program': p })
+                        aaui.UI_Info(_("Can't find %(program)s in the system path list. If the name of the application\nis correct, please run 'which %(program)s' as a user with correct PATH\nenvironment set up in order to find the fully-qualified path and\nuse the full path as parameter.")
+                                     % {'program': p})
                     else:
                         aaui.UI_Info(_("%s does not exist, please double-check the path.") % p)
                     continue
@@ -111,7 +111,8 @@ class aa_tools:
 
             else:
                 if '/' not in program:
-                    aaui.UI_Info(_("Can't find %(program)s in the system path list. If the name of the application\nis correct, please run 'which %(program)s' as a user with correct PATH\nenvironment set up in order to find the fully-qualified path and\nuse the full path as parameter.") % { 'program': program })
+                    aaui.UI_Info(_("Can't find %(program)s in the system path list. If the name of the application\nis correct, please run 'which %(program)s' as a user with correct PATH\nenvironment set up in order to find the fully-qualified path and\nuse the full path as parameter.")
+                                 % {'program': program})
                 else:
                     aaui.UI_Info(_("%s does not exist, please double-check the path.") % program)
                     sys.exit(1)
@@ -123,7 +124,7 @@ class aa_tools:
 
             output_name = profile if program is None else program
 
-            if not os.path.isfile(profile) or apparmor.is_skippable_file(profile):
+            if not os.path.isfile(profile) or is_skippable_file(profile):
                 aaui.UI_Info(_('Profile for %s not found, skipping') % output_name)
                 continue
 
@@ -139,7 +140,7 @@ class aa_tools:
 
             output_name = profile if program is None else program
 
-            if not os.path.isfile(profile) or apparmor.is_skippable_file(profile):
+            if not os.path.isfile(profile) or is_skippable_file(profile):
                 aaui.UI_Info(_('Profile for %s not found, skipping') % output_name)
                 continue
 
@@ -154,7 +155,7 @@ class aa_tools:
 
             output_name = profile if program is None else program
 
-            if not os.path.isfile(profile) or apparmor.is_skippable_file(profile):
+            if not os.path.isfile(profile) or is_skippable_file(profile):
                 aaui.UI_Info(_('Profile for %s not found, skipping') % output_name)
                 continue
 
@@ -169,7 +170,7 @@ class aa_tools:
 
             output_name = profile if program is None else program
 
-            if not os.path.isfile(profile) or apparmor.is_skippable_file(profile):
+            if not os.path.isfile(profile) or is_skippable_file(profile):
                 aaui.UI_Info(_('Profile for %s not found, skipping') % output_name)
                 continue
 
@@ -218,7 +219,7 @@ class aa_tools:
             if not self.silent:
                 q = aaui.PromptQuestion()
                 q.title = 'Changed Local Profiles'
-                q.explanation = _('The local profile for %(program)s in file %(file)s was changed. Would you like to save it?') % { 'program': program, 'file': filename }
+                q.explanation = _('The local profile for %(program)s in file %(file)s was changed. Would you like to save it?') % {'program': program, 'file': filename}
                 q.functions = ['CMD_SAVE_CHANGES', 'CMD_VIEW_CHANGES', 'CMD_ABORT']
                 q.default = 'CMD_VIEW_CHANGES'
                 q.options = []
@@ -231,14 +232,14 @@ class aa_tools:
                         apparmor.write_profile_ui_feedback(profile)
                         self.reload_profile(filename)
                     elif ans == 'CMD_VIEW_CHANGES':
-                        #oldprofile = apparmor.serialize_profile(apparmor.original_aa[profile], program, {})
-                        newprofile = apparmor.serialize_profile(apparmor.aa[profile], profile, {})  #  {'is_attachment': True})
+                        # oldprofile = apparmor.serialize_profile(apparmor.split_to_merged(apparmor.original_aa), profile, {})
+                        newprofile = apparmor.serialize_profile(apparmor.split_to_merged(apparmor.aa), profile, {})  # , {'is_attachment': True})
                         aaui.UI_Changes(filename, newprofile, comments=True)
             else:
                 apparmor.write_profile_ui_feedback(profile, True)
                 self.reload_profile(filename)
         else:
-            raise apparmor.AppArmorException(_('The profile for %s does not exists. Nothing to clean.') % program)
+            raise AppArmorException(_('The profile for %s does not exists. Nothing to clean.') % program)
 
     def enable_profile(self, filename):
         apparmor.delete_symlink('disable', filename)
@@ -254,13 +255,10 @@ class aa_tools:
         cmd_info = cmd([apparmor.parser, '-I%s' % apparmor.profile_dir, '--base', apparmor.profile_dir, '-R', profile])
 
         if cmd_info[0] != 0:
-            raise apparmor.AppArmorException(cmd_info[1])
+            raise AppArmorException(cmd_info[1])
 
     def reload_profile(self, profile):
         if not self.do_reload:
             return
 
-        cmd_info = cmd([apparmor.parser, '-I%s' % apparmor.profile_dir, '--base', apparmor.profile_dir, '-r', profile])
-
-        if cmd_info[0] != 0:
-            raise apparmor.AppArmorException(cmd_info[1])
+        apparmor.reload_profile(profile, raise_exc=True)

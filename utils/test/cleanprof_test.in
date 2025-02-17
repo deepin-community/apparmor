@@ -14,8 +14,12 @@
 
   @{asdf}       =   foo           ""
 
+$foo = false
+
+   $bar    =    true
+
 /usr/bin/a/simple/cleanprof/test/profile {
-	# Just for the heck of it, this comment wont see the day of light
+	# Just for the heck of it, this comment won't see the day of light
 	#include <abstractions/base>
 
 #include  if  exists <foo>
@@ -43,6 +47,10 @@
     dbus send bus=session,
     dbus send bus=session peer=(label=foo),
 
+    profile test_child /foobar {
+            /etc/child rw,
+            }
+
     set rlimit nofile <= 256,
     set rlimit nofile <= 64,
 
@@ -59,6 +67,11 @@
     ^foo, # hat declarations are obsolete and will be removed when aa-cleanprof or aa-logprof writes the profile
 
 	mount options=(rw,suid) /c -> /3,
+
+    hat bar {
+        /etc/passwd r,
+        capability sys_admin,
+        }
 
 	pivot_root oldroot=/mnt/root/old/,
 

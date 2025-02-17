@@ -14,14 +14,15 @@
 
 import re
 
-from apparmor.common import convert_regexp, type_is_str, AppArmorBug, AppArmorException
+from apparmor.common import convert_regexp, AppArmorBug, AppArmorException
 
-class AARE(object):
-    '''AARE (AppArmor Regular Expression) wrapper class'''
+
+class AARE:
+    """AARE (AppArmor Regular Expression) wrapper class"""
 
     def __init__(self, regex, is_path, log_event=None):
-        '''create an AARE instance for the given AppArmor regex
-        If is_path is true, the regex is expected to be a path and therefore must start with / or a variable.'''
+        """create an AARE instance for the given AppArmor regex
+        If is_path is true, the regex is expected to be a path and therefore must start with / or a variable."""
         # using the specified variables when matching.
 
         if is_path:
@@ -43,7 +44,7 @@ class AARE(object):
         # self.variables = variables  # XXX
 
     def __repr__(self):
-        '''returns a "printable" representation of AARE'''
+        """returns a "printable" representation of AARE"""
         return "AARE('%s')" % self.regex
 
     def __deepcopy__(self, memo):
@@ -58,7 +59,7 @@ class AARE(object):
     plain_path = re.compile('^[0-9a-zA-Z/._-]+$')
 
     def match(self, expression):
-        '''check if the given expression (string or AARE) matches the regex'''
+        """check if the given expression (string or AARE) matches the regex"""
 
         if type(expression) == AARE:
             if expression.orig_regex:
@@ -68,7 +69,7 @@ class AARE(object):
                 expression = expression.regex
             else:
                 return self.is_equal(expression)  # better safe than sorry
-        elif not type_is_str(expression):
+        elif type(expression) is not str:
             raise AppArmorBug('AARE.match() called with unknown object: %s' % str(expression))
 
         if self._regex_compiled is None:
@@ -77,69 +78,69 @@ class AARE(object):
         return bool(self._regex_compiled.match(expression))
 
     def is_equal(self, expression):
-        '''check if the given expression is equal'''
+        """check if the given expression is equal"""
 
         if type(expression) == AARE:
             return self.regex == expression.regex
-        elif type_is_str(expression):
+        elif type(expression) is str:
             return self.regex == expression
         else:
             raise AppArmorBug('AARE.is_equal() called with unknown object: %s' % str(expression))
 
     def glob_path(self):
-        '''Glob the given file or directory path'''
-        if self.regex[-1] == '/':
-            if self.regex[-4:] == '/**/' or self.regex[-3:] == '/*/':
+        """Glob the given file or directory path"""
+        if self.regex.endswith('/'):
+            if self.regex.endswith(('/**/', '/*/')):
                 # /foo/**/ and /foo/*/ => /**/
-                newpath = re.sub('/[^/]+/\*{1,2}/$', '/**/', self.regex)  # re.sub('/[^/]+/\*{1,2}$/', '/\*\*/', self.regex)
-            elif re.search('/[^/]+\*\*[^/]*/$', self.regex):
+                newpath = re.sub(r'/[^/]+/\*{1,2}/$', '/**/', self.regex)
+            elif re.search(r'/[^/]+\*\*[^/]*/$', self.regex):
                 # /foo**/ and /foo**bar/ => /**/
-                newpath = re.sub('/[^/]+\*\*[^/]*/$', '/**/', self.regex)
-            elif re.search('/\*\*[^/]+/$', self.regex):
+                newpath = re.sub(r'/[^/]+\*\*[^/]*/$', '/**/', self.regex)
+            elif re.search(r'/\*\*[^/]+/$', self.regex):
                 # /**bar/ => /**/
-                newpath = re.sub('/\*\*[^/]+/$', '/**/', self.regex)
+                newpath = re.sub(r'/\*\*[^/]+/$', '/**/', self.regex)
             else:
                 newpath = re.sub('/[^/]+/$', '/*/', self.regex)
         else:
-                if self.regex[-3:] == '/**' or self.regex[-2:] == '/*':
-                    # /foo/** and /foo/* => /**
-                    newpath = re.sub('/[^/]+/\*{1,2}$', '/**', self.regex)
-                elif re.search('/[^/]*\*\*[^/]+$', self.regex):
-                    # /**foo and /foor**bar => /**
-                    newpath = re.sub('/[^/]*\*\*[^/]+$', '/**', self.regex)
-                elif re.search('/[^/]+\*\*$', self.regex):
-                    # /foo** => /**
-                    newpath = re.sub('/[^/]+\*\*$', '/**', self.regex)
-                else:
-                    newpath = re.sub('/[^/]+$', '/*', self.regex)
+            if self.regex.endswith(('/**', '/*')):
+                # /foo/** and /foo/* => /**
+                newpath = re.sub(r'/[^/]+/\*{1,2}$', '/**', self.regex)
+            elif re.search(r'/[^/]*\*\*[^/]+$', self.regex):
+                # /**foo and /foor**bar => /**
+                newpath = re.sub(r'/[^/]*\*\*[^/]+$', '/**', self.regex)
+            elif re.search(r'/[^/]+\*\*$', self.regex):
+                # /foo** => /**
+                newpath = re.sub(r'/[^/]+\*\*$', '/**', self.regex)
+            else:
+                newpath = re.sub('/[^/]+$', '/*', self.regex)
         return AARE(newpath, False)
 
     def glob_path_withext(self):
-        '''Glob given file path with extension
-           Files without extensions and directories won't be changed'''
+        """Glob given file path with extension
+           Files without extensions and directories won't be changed"""
         # match /**.ext and /*.ext
-        match = re.search('/\*{1,2}(\.[^/]+)$', self.regex)
+        match = re.search(r'/\*{1,2}(\.[^/]+)$', self.regex)
         if match:
             # /foo/**.ext and /foo/*.ext => /**.ext
-            newpath = re.sub('/[^/]+/\*{1,2}\.[^/]+$', '/**' + match.groups()[0], self.regex)
-        elif re.search('/[^/]+\*\*[^/]*\.[^/]+$', self.regex):
+            newpath = re.sub(r'/[^/]+/\*{1,2}\.[^/]+$', '/**' + match.groups()[0], self.regex)
+        elif re.search(r'/[^/]+\*\*[^/]*\.[^/]+$', self.regex):
             # /foo**.ext and /foo**bar.ext => /**.ext
-            match = re.search('/[^/]+\*\*[^/]*(\.[^/]+)$', self.regex)
-            newpath = re.sub('/[^/]+\*\*[^/]*\.[^/]+$', '/**' + match.groups()[0], self.regex)
-        elif re.search('/\*\*[^/]+\.[^/]+$', self.regex):
+            match = re.search(r'/[^/]+\*\*[^/]*(\.[^/]+)$', self.regex)
+            newpath = re.sub(r'/[^/]+\*\*[^/]*\.[^/]+$', '/**' + match.groups()[0], self.regex)
+        elif re.search(r'/\*\*[^/]+\.[^/]+$', self.regex):
             # /**foo.ext => /**.ext
-            match = re.search('/\*\*[^/]+(\.[^/]+)$', self.regex)
-            newpath = re.sub('/\*\*[^/]+\.[^/]+$', '/**' + match.groups()[0], self.regex)
+            match = re.search(r'/\*\*[^/]+(\.[^/]+)$', self.regex)
+            newpath = re.sub(r'/\*\*[^/]+\.[^/]+$', '/**' + match.groups()[0], self.regex)
         else:
             newpath = self.regex
-            match = re.search('(\.[^/]+)$', self.regex)
+            match = re.search(r'(\.[^/]+)$', self.regex)
             if match:
-                newpath = re.sub('/[^/]+(\.[^/]+)$', '/*' + match.groups()[0], self.regex)
-        return AARE(newpath, False)
+                newpath = re.sub(r'/[^/]+(\.[^/]+)$', '/*' + match.groups()[0], self.regex)
+        return type(self)(newpath, False)
 
 
 def convert_expression_to_aare(expression):
-    '''convert an expression (taken from audit.log) to an AARE string'''
+    """convert an expression (taken from audit.log) to an AARE string"""
 
     aare_escape_chars = ['\\', '?', '*', '[', ']', '{', '}', '"', '!']
     for char in aare_escape_chars:

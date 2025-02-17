@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "APPARMOR.D 5"
-.TH APPARMOR.D 5 "2024-02-02" "AppArmor 3.0.13" "AppArmor"
+.TH APPARMOR.D 5 "2024-02-02" "AppArmor 3.1.7" "AppArmor"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -353,9 +353,6 @@ to the policy; this behaviour is modelled after \fBcpp\fR\|(1).
 \&\fB\s-1DBUS ACCESS\s0\fR = ( 'send' | 'receive' | 'bind' | 'eavesdrop' | 'r' | 'read' | 'w' | 'write' | 'rw' )
   Some accesses are incompatible with some rules; see below.
 .Sp
-\&\fB\s-1AARE\s0\fR = \fB?*[]{}^\fR
-  See below for meanings.
-.Sp
 \&\fB\s-1UNIX RULE\s0\fR = [ \fI\s-1QUALIFIERS\s0\fR ] 'unix' [ \fI\s-1UNIX ACCESS EXPR\s0\fR ] [ \fI\s-1UNIX RULE CONDS\s0\fR ] [ \fI\s-1UNIX LOCAL EXPR\s0\fR ] [ \fI\s-1UNIX PEER EXPR\s0\fR ]
 .Sp
 \&\fB\s-1UNIX ACCESS EXPR\s0\fR = ( \fI\s-1UNIX ACCESS\s0\fR | \fI\s-1UNIX ACCESS LIST\s0\fR )
@@ -411,6 +408,9 @@ to the policy; this behaviour is modelled after \fBcpp\fR\|(1).
 \&\fB\s-1QUOTED FILEGLOB\s0\fR = '"' \fI\s-1UNQUOTED FILEGLOB\s0\fR '"'
 .Sp
 \&\fB\s-1UNQUOTED FILEGLOB\s0\fR = (must start with '/' (after variable expansion), \fB\s-1AARE\s0\fR have special meanings; see below. May include \fI\s-1VARIABLE\s0\fR. Rules with embedded spaces or tabs must be quoted. Rules must end with '/' to apply to directories.)
+.Sp
+\&\fB\s-1AARE\s0\fR = \fB?*[]{}^\fR
+  See section \*(L"Globbing (\s-1AARE\s0)\*(R" below for meanings.
 .Sp
 \&\fB\s-1ACCESS\s0\fR = ( 'r' | 'w' | 'a' | 'l' | 'k' | 'm' | \fI\s-1EXEC TRANSITION\s0\fR )+  (not all combinations are allowed; see below.)
 .Sp
@@ -1622,9 +1622,10 @@ preamble of the profile. System-wide aliases are found in
 \&\fI/etc/apparmor.d/tunables/alias\fR, which is included by
 \&\fI/etc/apparmor.d/tunables/global\fR. \fI/etc/apparmor.d/tunables/global\fR is
 typically included at the beginning of an AppArmor profile.
-.SS "Globbing"
-.IX Subsection "Globbing"
-File resources may be specified with a globbing syntax similar to that
+.SS "Globbing (\s-1AARE\s0)"
+.IX Subsection "Globbing (AARE)"
+File resources and other parameters accepting an \s-1AARE\s0
+may be specified with a globbing syntax similar to that
 used by popular shells, such as \fBcsh\fR\|(1), \fBbash\fR\|(1), \fBzsh\fR\|(1).
 .IP "\fB*\fR" 4
 .IX Item "*"
@@ -1647,6 +1648,11 @@ will substitute for any single character not matching a, b or c
 .IP "\fB{ab,cd}\fR" 4
 .IX Item "{ab,cd}"
 will expand to one rule to match ab, one rule to match cd
+.Sp
+Can also include variables.
+.IP "\fB@{variable}\fR" 4
+.IX Item "@{variable}"
+will expand to all values assigned to the given variable.
 .PP
 When AppArmor looks up a directory the pathname being looked up will
 end with a slash (e.g., \fI/var/tmp/\fR); otherwise it will not end with a

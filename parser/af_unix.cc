@@ -29,7 +29,7 @@
 #include "profile.h"
 #include "af_unix.h"
 
-/* See unix(7) for autobind address definiation */
+/* See unix(7) for autobind address definition */
 #define autobind_address_pattern "\\x00[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]";
 
 int parse_unix_mode(const char *str_mode, int *mode, int fail)
@@ -40,7 +40,7 @@ int parse_unix_mode(const char *str_mode, int *mode, int fail)
 
 static struct supported_cond supported_conds[] = {
 	{ "addr", true, false, false, either_cond },
-	{ NULL, false, false, false, local_cond },	/* sentinal */
+	{ NULL, false, false, false, local_cond },	/* sentinel */
 };
 
 void unix_rule::move_conditionals(struct cond_entry *conds)
@@ -325,8 +325,9 @@ int unix_rule::gen_policy_re(Profile &prof)
 				rule_t::warn_once(prof.name, "downgrading extended network unix socket rule to generic network rule\n");
 			/* TODO: add ability to abort instead of downgrade */
 			return RULE_OK;
+		} else {
+			warn_once(prof.name);
 		}
-		warn_once(prof.name);
 		return RULE_NOT_SUPPORTED;
 	}
 
@@ -354,7 +355,7 @@ int unix_rule::gen_policy_re(Profile &prof)
 		/* local label option */
 		if (!write_label(tmp, label))
 			goto fail;
-		/* seperator */
+		/* separator */
 		tmp << "\\x00";
 
 		buf = tmp.str();
@@ -375,7 +376,7 @@ int unix_rule::gen_policy_re(Profile &prof)
 		/* local label option */
 		if (!write_label(buffer, label))
 			goto fail;
-		/* seperator */
+		/* separator */
 		buffer << "\\x00";
 
 		/* create already masked off */

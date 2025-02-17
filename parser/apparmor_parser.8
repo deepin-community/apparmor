@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "APPARMOR_PARSER 8"
-.TH APPARMOR_PARSER 8 "2024-02-02" "AppArmor 3.0.13" "AppArmor"
+.TH APPARMOR_PARSER 8 "2024-02-02" "AppArmor 3.1.7" "AppArmor"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -444,6 +444,17 @@ encountered will be used to set the exit code.
 This option tells the parser to not attempt to rebuild the cache on
 failure, instead the parser continues on with processing the remaining
 profiles.
+.IP "\-\-estimated\-compile\-size Adjust the internal parameter used to estimate how agressive the parser can be when compiling policy. This may include changes to how or when caches are dropped or how many compile units (jobs) are launched. The value should slightly larger than the largest Resident Set Size (\s-1RSS\s0) encountered for the type of policy being compiled." 4
+.IX Item "--estimated-compile-size Adjust the internal parameter used to estimate how agressive the parser can be when compiling policy. This may include changes to how or when caches are dropped or how many compile units (jobs) are launched. The value should slightly larger than the largest Resident Set Size (RSS) encountered for the type of policy being compiled."
+A value that is too small may result in the parser exhausting system
+resources when compiling large policy. A value too large may slow
+policy compiles down.
+.Sp
+The value specified may include a suffix of \fI\s-1KB\s0\fR, \fI\s-1MB\s0\fR, \fI\s-1GB\s0\fR, to
+make it easier to adjust the size.
+.Sp
+Note: config-file and command line options will override values chosen
+by tuning affected by the option.
 .IP "\-\-config\-file" 4
 .IX Item "--config-file"
 Specify the config file to use instead of

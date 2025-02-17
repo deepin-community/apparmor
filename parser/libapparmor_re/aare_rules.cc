@@ -61,12 +61,12 @@ void aare_rules::add_to_rules(Node *tree, Node *perms)
 		expr_map[perms] = tree;
 }
 
-static Node *cat_with_null_seperator(Node *l, Node *r)
+static Node *cat_with_null_separator(Node *l, Node *r)
 {
 	return new CatNode(new CatNode(l, new CharNode(0)), r);
 }
 
-static Node *cat_with_oob_seperator(Node *l, Node *r)
+static Node *cat_with_oob_separator(Node *l, Node *r)
 {
 	return new CatNode(new CatNode(l, new CharNode(transchar(-1, true))), r);
 }
@@ -85,9 +85,9 @@ bool aare_rules::add_rule_vec(int deny, uint32_t perms, uint32_t audit,
 		if (regex_parse(&subtree, rulev[i]))
 			goto err;
 		if (oob)
-			tree = cat_with_oob_seperator(tree, subtree);
+			tree = cat_with_oob_separator(tree, subtree);
 		else
-			tree = cat_with_null_seperator(tree, subtree);
+			tree = cat_with_null_separator(tree, subtree);
 	}
 
 	/*
@@ -97,11 +97,11 @@ bool aare_rules::add_rule_vec(int deny, uint32_t perms, uint32_t audit,
 	 */
 	exact_match = 1;
 	for (depth_first_traversal i(tree); i && exact_match; i++) {
-		if (dynamic_cast<StarNode *>(*i) ||
-		    dynamic_cast<PlusNode *>(*i) ||
-		    dynamic_cast<AnyCharNode *>(*i) ||
-		    dynamic_cast<CharSetNode *>(*i) ||
-		    dynamic_cast<NotCharSetNode *>(*i))
+		if ((*i)->is_type(NODE_TYPE_STAR) ||
+		    (*i)->is_type(NODE_TYPE_PLUS) ||
+		    (*i)->is_type(NODE_TYPE_ANYCHAR) ||
+		    (*i)->is_type(NODE_TYPE_CHARSET) ||
+		    (*i)->is_type(NODE_TYPE_NOTCHARSET))
 			exact_match = 0;
 	}
 
@@ -111,15 +111,15 @@ bool aare_rules::add_rule_vec(int deny, uint32_t perms, uint32_t audit,
 	accept = unique_perms.insert(deny, perms, audit, exact_match);
 
 	if (flags & DFA_DUMP_RULE_EXPR) {
-		const char *seperator;
+		const char *separator;
 		if (oob)
-			seperator = "\\-x01";
+			separator = "\\-x01";
 		else
-			seperator = "\\x00";
+			separator = "\\x00";
 		cerr << "rule: ";
 		cerr << rulev[0];
 		for (int i = 1; i < count; i++) {
-			cerr << seperator;
+			cerr << separator;
 			cerr << rulev[i];
 		}
 		cerr << "  ->  ";

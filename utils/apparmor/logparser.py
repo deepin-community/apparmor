@@ -16,12 +16,13 @@ import ctypes
 import re
 import sys
 import time
-import LibAppArmor
-from apparmor.common import AppArmorException, AppArmorBug, hasher, open_file_read, split_name, DebugLogger
 
-# setup module translations
+import LibAppArmor
+from apparmor.common import AppArmorBug, AppArmorException, DebugLogger, hasher, open_file_read, split_name
 from apparmor.translations import init_translation
+
 _ = init_translation()
+
 
 class ReadLog:
 
@@ -32,7 +33,7 @@ class ReadLog:
         self.filename = filename
         self.profile_dir = profile_dir
         self.active_profiles = active_profiles
-        self.hashlog = { 'PERMITTING': {}, 'REJECTING': {}, 'AUDIT': {} }  # structure inside {}: {'profilename': init_hashlog(aamode, profilename), 'profilename2': init_hashlog(...), ...}
+        self.hashlog = {'PERMITTING': {}, 'REJECTING': {}}  # structure inside {}: {'profilename': init_hashlog(aamode, profilename), 'profilename2': init_hashlog(...), ...}
         self.debug_logger = DebugLogger('ReadLog')
         self.LOG = None
         self.logmark = ''
@@ -40,7 +41,7 @@ class ReadLog:
         self.next_log_entry = None
 
     def init_hashlog(self, aamode, profile):
-        ''' initialize self.hashlog[aamode][profile] for all rule types'''
+        """initialize self.hashlog[aamode][profile] for all rule types"""
 
         if profile in self.hashlog[aamode].keys():
             return  # already initialized, don't overwrite existing data
@@ -79,9 +80,6 @@ class ReadLog:
         """Parse the event from log into key value pairs"""
         msg = msg.strip()
         self.debug_logger.info('parse_event: %s' % msg)
-        if sys.version_info < (3, 0):
-            # parse_record fails with u'foo' style strings hence typecasting to string
-            msg = str(msg)
         event = LibAppArmor.parse_record(msg)
         ev = dict()
         ev['resource'] = event.info
@@ -158,12 +156,12 @@ class ReadLog:
         if aamode == 'UNKNOWN':
             raise AppArmorBug('aamode is UNKNOWN - %s' % e['type'])  # should never happen
 
-        if aamode in ['AUDIT', 'STATUS', 'ERROR']:
-            return None
+        if aamode in ('AUDIT', 'STATUS', 'ERROR'):
+            return
 
         # Skip if AUDIT event was issued due to a change_hat in unconfined mode
         if not e.get('profile', False):
-            return None
+            return
 
         full_profile = e['profile']  # full, nested profile name
         self.init_hashlog(aamode, full_profile)
@@ -175,7 +173,7 @@ class ReadLog:
         profile, hat = split_name(e['profile'])
 
         if profile != 'null-complain-profile' and not self.profile_exists(profile):
-            return None
+            return
         if e['operation'] == 'exec':
             if not e['name']:
                 raise AppArmorException('exec without executed binary')
@@ -184,7 +182,7 @@ class ReadLog:
                 e['name2'] = ''  # exec events in enforce mode don't have target=...
 
             self.hashlog[aamode][full_profile]['exec'][e['name']][e['name2']] = True
-            return None
+            return
 
         elif self.op_type(e) == 'file':
             # Map c (create) and d (delete) to w (logging is more detailed than the profile language)
@@ -218,45 +216,45 @@ class ReadLog:
                 else:
                     raise AppArmorException(_('Log contains unknown mode %s') % dmask)
 
-            return None
+            return
 
         elif e['operation'] == 'capable':
             self.hashlog[aamode][full_profile]['capability'][e['name']] = True
-            return None
+            return
 
         elif self.op_type(e) == 'net':
             self.hashlog[aamode][full_profile]['network'][e['family']][e['sock_type']][e['protocol']] = True
-            return None
+            return
 
         elif e['operation'] == 'change_hat':
             if e['error_code'] == 1 and e['info'] == 'unconfined can not change_hat':
-                return None
+                return
 
             self.hashlog[aamode][full_profile]['change_hat'][e['name2']] = True
-            return None
+            return
 
         elif e['operation'] == 'change_profile':
             self.hashlog[aamode][full_profile]['change_profile'][e['name2']] = True
-            return None
+            return
 
         elif e['operation'] == 'ptrace':
             if not e['peer']:
                 self.debug_logger.debug('ignored garbage ptrace event with empty peer')
-                return None
+                return
             if not e['denied_mask']:
                 self.debug_logger.debug('ignored garbage ptrace event with empty denied_mask')
-                return None
+                return
 
             self.hashlog[aamode][full_profile]['ptrace'][e['peer']][e['denied_mask']] = True
-            return None
+            return
 
         elif e['operation'] == 'signal':
-            self.hashlog[aamode][full_profile]['signal'][e['peer']][e['denied_mask']][e['signal']]= True
-            return None
+            self.hashlog[aamode][full_profile]['signal'][e['peer']][e['denied_mask']][e['signal']] = True
+            return
 
         elif e['operation'] and e['operation'].startswith('dbus_'):
             self.hashlog[aamode][full_profile]['dbus'][e['denied_mask']][e['bus']][e['path']][e['name']][e['interface']][e['member']][e['peer_profile']] = True
-            return None
+            return
 
         else:
             self.debug_logger.debug('UNHANDLED: %s' % e)
@@ -270,32 +268,31 @@ class ReadLog:
             self.LOG = open_file_read(self.filename)
         except IOError:
             raise AppArmorException('Can not read AppArmor logfile: ' + self.filename)
-        line = True
-        while line:
-            line = self.get_next_log_entry()
-            if not line:
-                break
-            line = line.strip()
-            self.debug_logger.debug('read_log: %s' % line)
-            if self.logmark in line:
-                seenmark = True
+        with self.LOG:
+            line = True
+            while line:
+                line = self.get_next_log_entry()
+                if not line:
+                    break
+                line = line.strip()
+                self.debug_logger.debug('read_log: %s' % line)
+                if self.logmark in line:
+                    seenmark = True
 
-            self.debug_logger.debug('read_log: seenmark = %s' % seenmark)
-            if not seenmark:
-                continue
+                self.debug_logger.debug('read_log: seenmark = %s' % seenmark)
+                if not seenmark:
+                    continue
 
-            event = self.parse_event(line)
-            if event:
-                try:
-                    self.parse_event_for_tree(event)
+                event = self.parse_event(line)
+                if event:
+                    try:
+                        self.parse_event_for_tree(event)
 
-                except AppArmorException as e:
-                    ex_msg = ('%(msg)s\n\nThis error was caused by the log line:\n%(logline)s' %
-                            {'msg': e.value, 'logline': line})
-                    # when py3 only: Drop the original AppArmorException by passing None as the parent exception
-                    raise AppArmorBug(ex_msg)  # py3-only: from None
+                    except AppArmorException as e:
+                        ex_msg = ('%(msg)s\n\nThis error was caused by the log line:\n%(logline)s'
+                                  % {'msg': e.value, 'logline': line})
+                        raise AppArmorBug(ex_msg) from None
 
-        self.LOG.close()
         self.logmark = ''
 
         return self.hashlog
@@ -304,41 +301,41 @@ class ReadLog:
     # (used by op_type() which checks some event details to decide)
     OP_TYPE_FILE_OR_NET = {
         # Note: op_type() also uses some startswith() checks which are not listed here!
-       'create',
-       'post_create',
-       'bind',
-       'connect',
-       'listen',
-       'accept',
-       'sendmsg',
-       'recvmsg',
-       'getsockname',
-       'getpeername',
-       'getsockopt',
-       'setsockopt',
-       'socket_create',
-       'sock_shutdown',
-       'open',
-       'truncate',
-       'mkdir',
-       'mknod',
-       'chmod',
-       'chown',
-       'rename_src',
-       'rename_dest',
-       'unlink',
-       'rmdir',
-       'symlink',
-       'symlink_create',
-       'link',
-       'sysctl',
-       'getattr',
-       'setattr',
-       'xattr',
+        'create',
+        'post_create',
+        'bind',
+        'connect',
+        'listen',
+        'accept',
+        'sendmsg',
+        'recvmsg',
+        'getsockname',
+        'getpeername',
+        'getsockopt',
+        'setsockopt',
+        'socket_create',
+        'sock_shutdown',
+        'open',
+        'truncate',
+        'mkdir',
+        'mknod',
+        'chmod',
+        'chown',
+        'rename_src',
+        'rename_dest',
+        'unlink',
+        'rmdir',
+        'symlink',
+        'symlink_create',
+        'link',
+        'sysctl',
+        'getattr',
+        'setattr',
+        'xattr',
     }
 
     def op_type(self, event):
-        """Returns the operation type if known, unkown otherwise"""
+        """Returns the operation type if known, unknown otherwise"""
 
         if event['operation'] and (event['operation'].startswith('file_') or
                                    event['operation'].startswith('inode_') or

@@ -64,7 +64,7 @@
       <li><a href="#rlimit-rules">rlimit rules</a></li>
       <li><a href="#Variables">Variables</a></li>
       <li><a href="#Alias-rules">Alias rules</a></li>
-      <li><a href="#Globbing">Globbing</a></li>
+      <li><a href="#Globbing-AARE">Globbing (AARE)</a></li>
       <li><a href="#Rule-Qualifiers">Rule Qualifiers</a>
         <ul>
           <li><a href="#Qualifier-Blocks">Qualifier Blocks</a></li>
@@ -274,8 +274,6 @@
 
 <p><b>DBUS ACCESS</b> = ( &#39;send&#39; | &#39;receive&#39; | &#39;bind&#39; | &#39;eavesdrop&#39; | &#39;r&#39; | &#39;read&#39; | &#39;w&#39; | &#39;write&#39; | &#39;rw&#39; ) Some accesses are incompatible with some rules; see below.</p>
 
-<p><b>AARE</b> = <b>?*[]{}^</b> See below for meanings.</p>
-
 <p><b>UNIX RULE</b> = [ <i>QUALIFIERS</i> ] &#39;unix&#39; [ <i>UNIX ACCESS EXPR</i> ] [ <i>UNIX RULE CONDS</i> ] [ <i>UNIX LOCAL EXPR</i> ] [ <i>UNIX PEER EXPR</i> ]</p>
 
 <p><b>UNIX ACCESS EXPR</b> = ( <i>UNIX ACCESS</i> | <i>UNIX ACCESS LIST</i> )</p>
@@ -323,6 +321,8 @@
 <p><b>QUOTED FILEGLOB</b> = &#39;&quot;&#39; <i>UNQUOTED FILEGLOB</i> &#39;&quot;&#39;</p>
 
 <p><b>UNQUOTED FILEGLOB</b> = (must start with &#39;/&#39; (after variable expansion), <b>AARE</b> have special meanings; see below. May include <i>VARIABLE</i>. Rules with embedded spaces or tabs must be quoted. Rules must end with &#39;/&#39; to apply to directories.)</p>
+
+<p><b>AARE</b> = <b>?*[]{}^</b> See section &quot;Globbing (AARE)&quot; below for meanings.</p>
 
 <p><b>ACCESS</b> = ( &#39;r&#39; | &#39;w&#39; | &#39;a&#39; | &#39;l&#39; | &#39;k&#39; | &#39;m&#39; | <i>EXEC TRANSITION</i> )+ (not all combinations are allowed; see below.)</p>
 
@@ -1315,9 +1315,9 @@ set rlimit nice &lt;= 5,</code></pre>
 
 <p>AppArmor also provides alias rules for remapping paths for site-specific layouts. They are an alternative form of path rewriting to using variables, and are done after variable resolution. Alias rules must occur within the preamble of the profile. System-wide aliases are found in <i>/etc/apparmor.d/tunables/alias</i>, which is included by <i>/etc/apparmor.d/tunables/global</i>. <i>/etc/apparmor.d/tunables/global</i> is typically included at the beginning of an AppArmor profile.</p>
 
-<h2 id="Globbing">Globbing</h2>
+<h2 id="Globbing-AARE">Globbing (AARE)</h2>
 
-<p>File resources may be specified with a globbing syntax similar to that used by popular shells, such as csh(1), bash(1), zsh(1).</p>
+<p>File resources and other parameters accepting an AARE may be specified with a globbing syntax similar to that used by popular shells, such as csh(1), bash(1), zsh(1).</p>
 
 <dl>
 
@@ -1361,6 +1361,14 @@ set rlimit nice &lt;= 5,</code></pre>
 <dd>
 
 <p>will expand to one rule to match ab, one rule to match cd</p>
+
+<p>Can also include variables.</p>
+
+</dd>
+<dt id="variable"><b>@{variable}</b></dt>
+<dd>
+
+<p>will expand to all values assigned to the given variable.</p>
 
 </dd>
 </dl>

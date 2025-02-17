@@ -1,3 +1,4 @@
+upstream-mr-1254-Honor-global-CFLAGS-when-building-Python-library.patch
 debian/add-debian-integration-to-lighttpd.patch
 debian/libapparmor-layout-deb.patch
 debian/etc-writable.patch

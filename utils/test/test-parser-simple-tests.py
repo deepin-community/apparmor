@@ -9,12 +9,12 @@
 #
 # ------------------------------------------------------------------
 
-import unittest
-from common_test import AATest, setup_all_loops, setup_aa
-import apparmor.aa as apparmor
-
 import os
-from apparmor.common import open_file_read, AppArmorException
+import unittest
+
+import apparmor.aa as apparmor
+from apparmor.common import AppArmorException, is_skippable_file, open_file_read
+from common_test import AATest, setup_aa, setup_all_loops
 
 # This testcase will parse all parser/tst/simple_tests with parse_profile_data(),
 # except the files listed in one of the arrays below.
@@ -38,7 +38,7 @@ skip_startswith = (
 )
 
 # testcases that should raise an exception, but don't
-exception_not_raised = [
+exception_not_raised = (
     # most abi/bad_* aren't detected as bad by the basic implementation in the tools
     'abi/bad_10.sd',
     'abi/bad_11.sd',
@@ -156,7 +156,6 @@ exception_not_raised = [
     'profile/flags/flags_bad44.sd',
     'profile/flags/flags_bad45.sd',
     'profile/flags/flags_bad46.sd',
-    'profile/simple_bad_no_close_brace4.sd',
     'profile/profile_ns_bad8.sd',  # 'profile :ns/t' without terminating ':'
     'ptrace/bad_05.sd',  # actually contains a capability rule with invalid (ptrace-related) keyword
     'ptrace/bad_06.sd',  # actually contains a capability rule with invalid (ptrace-related) keyword
@@ -191,9 +190,6 @@ exception_not_raised = [
     'unix/bad_attr_5.sd',
     'unix/bad_opt_5.sd',
     'unix/bad_shutdown_3.sd',
-    'vars/boolean/boolean_bad_2.sd',
-    'vars/boolean/boolean_bad_3.sd',
-    'vars/boolean/boolean_bad_4.sd',
     'vars/vars_bad_3.sd',
     'vars/vars_bad_4.sd',
     'vars/vars_bad_5.sd',
@@ -237,10 +233,10 @@ exception_not_raised = [
     'xtrans/simple_bad_conflicting_x_6.sd',
     'xtrans/simple_bad_conflicting_x_8.sd',
     'xtrans/x-conflict.sd',
-]
+)
 
 # testcases with lines that don't match any regex and end up as "unknown line"
-unknown_line = [
+unknown_line = (
     # 'other' keyword
     'file/allow/ok_other_1.sd',
     'file/allow/ok_other_2.sd',
@@ -317,15 +313,12 @@ unknown_line = [
     'bare_include_tests/ok_84.sd',
     'bare_include_tests/ok_85.sd',
     'bare_include_tests/ok_86.sd',
-]
+)
 
 # testcases with various unexpected failures
-syntax_failure = [
+syntax_failure = (
     # missing profile keywords
     'profile/re_named_ok2.sd',
-
-    # Syntax Error: Unexpected hat definition found (external hat)
-    'change_hat/new_style4.sd',
 
     # Syntax Errors caused by boolean conditions (parse_profile_data() gets confused by the closing '}')
     'conditional/defined_1.sd',
@@ -426,7 +419,8 @@ syntax_failure = [
     'vars/vars_dbus_8.sd',  # Path doesn't start with / or variable: {/@{TLDS}/foo,/com/@{DOMAINS}}
     'vars/vars_simple_assignment_12.sd',  # Redefining existing variable @{BAR} ('\' not handled)
     'bare_include_tests/ok_2.sd',  # two #include<...> in one line
-]
+)
+
 
 class TestParseParserTests(AATest):
     tests = []  # filled by parse_test_profiles()
@@ -448,16 +442,17 @@ class TestParseParserTests(AATest):
         apparmor.active_profiles.init_file(params['file'])
 
         if expected:
-            apparmor.parse_profile_data(data, params['file'], 0)
+            apparmor.parse_profile_data(data, params['file'], 0, True)
             apparmor.active_profiles.get_all_merged_variables(params['file'], apparmor.include_list_recursive(apparmor.active_profiles.files[params['file']]))
 
         else:
             with self.assertRaises(AppArmorException):
-                apparmor.parse_profile_data(data, params['file'], 0)
+                apparmor.parse_profile_data(data, params['file'], 0, True)
                 apparmor.active_profiles.get_all_merged_variables(params['file'], apparmor.include_list_recursive(apparmor.active_profiles.files[params['file']]))
 
+
 def parse_test_profiles(file_with_path):
-    '''parse the test-related headers of a profile (for example EXRESULT) and add the profile to the set of tests'''
+    """parse the test-related headers of a profile (for example EXRESULT) and add the profile to the set of tests"""
     exresult = None
     exresult_found = False
     description = None
@@ -526,11 +521,11 @@ def parse_test_profiles(file_with_path):
 
 
 def find_and_setup_test_profiles(profile_dir):
-    '''find all profiles in the given profile_dir, excluding
+    """find all profiles in the given profile_dir, excluding
     - skippable files
     - include directories
     - files in the main directory (readme, todo etc.)
-    '''
+    """
     skipped = 0
 
     profile_dir = os.path.abspath(profile_dir)
@@ -550,7 +545,7 @@ def find_and_setup_test_profiles(profile_dir):
 
         for file in files:
             file_with_path = os.path.join(root, file)
-            if not apparmor.is_skippable_file(file) and relpath != '.':
+            if not is_skippable_file(file) and relpath != '.':
                 skipped += parse_test_profiles(file_with_path)
 
     if skipped:
