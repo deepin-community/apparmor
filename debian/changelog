@@ -1,3 +1,16 @@
+apparmor (3.1.7-1) unstable; urgency=medium
+
+  * Import new upstream release (Closes: #988204, #1057787, #1003158)
+  * debian/watch: track any 3.x release
+  * Fix DEP-3 metadata syntax on 2 patches
+  * Only include /usr/share/dpkg/architecture.mk once
+  * New patch: honor global CFLAGS when building Python library.
+    - This fixes missing hardening flags, spotted by blhc.
+    - Accordingly, refresh context of another patch.
+  * GitLab CI: don't vary the build path in reprotest
+
+ -- intrigeri <intrigeri@debian.org>  Thu, 13 Jun 2024 16:18:06 +0000
+
 apparmor (3.0.13-2) unstable; urgency=medium
 
   * Revert "Vcs-* control fields: track the debian/experimental branch"

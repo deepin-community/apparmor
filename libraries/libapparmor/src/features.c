@@ -666,7 +666,7 @@ static const char *features_lookup(aa_features *features, const char *str)
 
 	/* Empty strings are not accepted. Neither are leading '/' chars. */
 	if (!str || str[0] == '/')
-		return false;
+		return NULL;
 
 	/**
 	 * Break @str into an array of components. For example,
@@ -679,7 +679,7 @@ static const char *features_lookup(aa_features *features, const char *str)
 
 	/* At least one valid token is required */
 	if (!num_components)
-		return false;
+		return NULL;
 
 	/* Ensure that all components are valid and found */
 	for (i = 0; i < num_components; i++) {

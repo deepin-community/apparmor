@@ -9,14 +9,14 @@
 #
 # ------------------------------------------------------------------
 
+import re
 import unittest
-from common_test import AATest, setup_all_loops
 
+import apparmor.severity as severity
 from apparmor.common import AppArmorBug
 from apparmor.rule import BaseRule, parse_modifiers
-import apparmor.severity as severity
+from common_test import AATest, setup_all_loops
 
-import re
 
 class TestBaserule(AATest):
     def test_abstract__parse(self):
@@ -51,14 +51,14 @@ class TestBaserule(AATest):
             obj.is_covered_localvars(None)
 
     def test_parse_modifiers_invalid(self):
-        regex = re.compile('^\s*(?P<audit>audit\s+)?(?P<allow>allow\s+|deny\s+|invalid\s+)?')
+        regex = re.compile(r'^\s*(?P<audit>audit\s+)?(?P<allow>allow\s+|deny\s+|invalid\s+)?')
         matches = regex.search('audit invalid ')
 
         with self.assertRaises(AppArmorBug):
             parse_modifiers(matches)
 
     def test_default_severity(self):
-        sev_db = severity.Severity('severity.db', 'unknown')
+        sev_db = severity.Severity('../severity.db', 'unknown')
         obj = BaseRule()
         rank = obj.severity(sev_db)
         self.assertEqual(rank, sev_db.NOT_IMPLEMENTED)

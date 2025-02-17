@@ -13,11 +13,12 @@
 # TODO
 # - finish adding suppressions for valgrind false positives
 
-from argparse import ArgumentParser  # requires python 2.7 or newer
 import os
 import sys
-import tempfile
 import unittest
+from argparse import ArgumentParser
+from tempfile import NamedTemporaryFile
+
 import testlib
 
 DEFAULT_TESTDIR = "./simple_tests/vars"
@@ -42,20 +43,22 @@ class AAParserValgrindTests(testlib.AATestTemplate):
         self.maxDiff = None
 
     def _runtest(self, testname, config):
-        parser_args = ['-Q', '-I', config.testdir, '-M', './features_files/features.all']
-        failure_rc = [VALGRIND_ERROR_CODE, testlib.TIMEOUT_ERROR_CODE]
+        parser_args = ('-Q', '-I', config.testdir, '-M', './features_files/features.all')
+        failure_rc = (VALGRIND_ERROR_CODE, testlib.TIMEOUT_ERROR_CODE)
         command = [config.valgrind]
         command.extend(VALGRIND_ARGS)
         command.append(config.parser)
         command.extend(parser_args)
         command.append(testname)
         rc, output = self.run_cmd(command, timeout=120)
-        self.assertNotIn(rc, failure_rc,
-                    "valgrind returned error code %d, gave the following output\n%s\ncommand run: %s" % (rc, output, " ".join(command)))
+        self.assertNotIn(
+            rc, failure_rc,
+            "valgrind returned error code %d, gave the following output\n%s\ncommand run: %s"
+            % (rc, output, " ".join(command)))
 
 
 def find_testcases(testdir):
-    '''dig testcases out of passed directory'''
+    """dig testcases out of passed directory"""
 
     for (fdir, direntries, files) in os.walk(testdir):
         for f in files:
@@ -64,14 +67,11 @@ def find_testcases(testdir):
 
 
 def create_suppressions():
-    '''generate valgrind suppressions file'''
+    """generate valgrind suppressions file"""
+    with NamedTemporaryFile("w+", suffix='.suppressions', prefix='aa-parser-valgrind', delete=False) as temp_file:
+        temp_file.write(VALGRIND_SUPPRESSIONS)
+    return temp_file.name
 
-    handle, name = tempfile.mkstemp(suffix='.suppressions', prefix='aa-parser-valgrind')
-    os.close(handle)
-    handle = open(name,"w+")
-    handle.write(VALGRIND_SUPPRESSIONS)
-    handle.close()
-    return name
 
 def main():
     rc = 0
@@ -124,6 +124,7 @@ def main():
         os.remove(suppression_file)
 
     return rc
+
 
 if __name__ == "__main__":
     rc = main()

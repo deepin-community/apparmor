@@ -3,7 +3,9 @@ Date: Mon, 29 Jan 2018 12:26:43 +0000
 Subject: Allow reading time configuration from /etc/writable,
  as we have it on the phone.
 
-Forwarded: No, that's an Ubuntu specific hack
+This is an Ubuntu specific tweak, so no need to forward upstream.
+
+Forwarded: not-needed
 Bug-Ubuntu: https://launchpad.net/bugs/1227520
 ---
  profiles/apparmor.d/abstractions/base                   | 1 +

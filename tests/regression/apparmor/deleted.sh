@@ -91,7 +91,7 @@ rm -f ${socket}
 
 genprofile $af_unix $file:$okperm $socket:rw $fd_client:ux
 
-runchecktest "fd passing; unconfined client" pass $file $socket $fd_client "delete_file"
+runchecktest "fd passing; unconfined client" pass $file $fd_client $socket "delete_file"
 
 sleep 1
 cat > ${file} << EOM
@@ -108,7 +108,7 @@ rm -f ${socket}
 
 # PASS - confined client, rw access to the file
 genprofile $af_unix $file:$okperm $socket:rw $fd_client:px -- image=$fd_client $af_unix $file:$okperm $socket:rw
-runchecktest "fd passing; confined client w/ rw" pass $file $socket $fd_client "delete_file"
+runchecktest "fd passing; confined client w/ rw" pass $file $fd_client $socket "delete_file"
 
 sleep 1
 cat > ${file} << EOM
@@ -125,7 +125,7 @@ rm -f ${socket}
 # FAIL - confined client, w access to the file
 
 genprofile $af_unix $file:$okperm $socket:rw $fd_client:px -- image=$fd_client $af_unix $file:$badperm $socket:rw
-runchecktest "fd passing; confined client w/ w only" fail $file $socket $fd_client "delete_file"
+runchecktest "fd passing; confined client w/ w only" fail $file $fd_client $socket "delete_file"
 
 sleep 1
 rm -f ${socket}
