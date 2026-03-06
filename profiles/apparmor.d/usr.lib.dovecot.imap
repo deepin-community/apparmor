@@ -10,7 +10,7 @@
 # ------------------------------------------------------------------
 # vim: ft=apparmor
 
-abi <abi/3.0>,
+abi <abi/4.0>,
 
 include <tunables/global>
 include <tunables/dovecot>
@@ -33,6 +33,7 @@ profile dovecot-imap /usr/lib*/dovecot/imap {
   /etc/dovecot/conf.d/ r,
   /etc/dovecot/conf.d/** r,
 
+  owner /tmp/doveconf.* rw,
   owner /tmp/dovecot.imap.* rw,
   @{PROC}/@{pid}/attr/{apparmor/,}current rw,
   @{PROC}/@{pid}/stat r,

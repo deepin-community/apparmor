@@ -1,4 +1,4 @@
-abi <abi/3.0>,
+abi <abi/4.0>,
 
 include <tunables/global>
 
@@ -6,7 +6,6 @@ profile samba-bgqd /usr/lib*/samba/{,samba/}samba-bgqd {
   include <abstractions/base>
   include <abstractions/cups-client>
   include <abstractions/nameservice>
-  include <abstractions/openssl>
   include <abstractions/samba>
 
   signal receive set=term peer=smbd,

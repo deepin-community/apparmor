@@ -31,11 +31,12 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
-
+#include <stdint.h>
 #include "expr-tree.h"
 #include "hfa.h"
+#include "policy_compat.h"
 #include "../immunix.h"
-
+#include "../perms.h"
 
 ostream &operator<<(ostream &os, const CacheStats &cache)
 {
@@ -79,6 +80,21 @@ ostream &operator<<(ostream &os, State &state)
 	os << '{';
 	os << state.label;
 	os << '}';
+	return os;
+}
+
+ostream &operator<<(ostream &os,
+		    const std::pair<State * const, Renumber_Map *> &p)
+{
+	/* dump the state label */
+	if (p.second && (*p.second)[p.first] != (size_t) p.first->label) {
+		os << '{';
+		os << (*p.second)[p.first];
+		os << " == " << *(p.first);
+		os << '}';
+	} else {
+		os << *(p.first);
+	}
 	return os;
 }
 
@@ -301,15 +317,26 @@ static void split_node_types(NodeSet *nodes, NodeSet **anodes, NodeSet **nnodes
 	*nnodes = nodes;
 }
 
-State *DFA::add_new_state(NodeSet *anodes, NodeSet *nnodes, State *other)
+State *DFA::add_new_state(optflags const &opts, NodeSet *anodes,
+			  NodeSet *nnodes, State *other)
 {
-	hashedNodeVec *nnodev;
+	NodeVec *nnodev, *anodev;
 	nnodev = nnodes_cache.insert(nnodes);
-	anodes = anodes_cache.insert(anodes);
+	anodev = anodes_cache.insert(anodes);
 
 	ProtoState proto;
-	proto.init(nnodev, anodes);
-	State *state = new State(node_map.size(), proto, other, filedfa);
+	proto.init(nnodev, anodev);
+	State *state;
+	try {
+		state = new State(uniq_perms, opts, node_map.size(), proto,
+				  other, filedfa);
+	} catch(int error) {
+		/* this function is called in the DFA object creation,
+		 * and the exception prevents the destructor from
+		 * being called, so call the helper here */
+		cleanup();
+		throw error;
+	}
 	pair<NodeMap::iterator,bool> x = node_map.insert(proto, state);
 	if (x.second == false) {
 		delete state;
@@ -321,7 +348,7 @@ State *DFA::add_new_state(NodeSet *anodes, NodeSet *nnodes, State *other)
 	return x.first->second;
 }
 
-State *DFA::add_new_state(NodeSet *nodes, State *other)
+State *DFA::add_new_state(optflags const &opts, NodeSet *nodes, State *other)
 {
 	/* The splitting of nodes should probably get pushed down into
 	 * follow(), ie. put in separate lists from the start
@@ -329,12 +356,12 @@ State *DFA::add_new_state(NodeSet *nodes, State *other)
 	NodeSet *anodes, *nnodes;
 	split_node_types(nodes, &anodes, &nnodes);
 
-	State *state = add_new_state(anodes, nnodes, other);
+	State *state = add_new_state(opts, anodes, nnodes, other);
 
 	return state;
 }
 
-void DFA::update_state_transitions(State *state)
+void DFA::update_state_transitions(optflags const &opts, State *state)
 {
 	/* Compute possible transitions for state->nodes.  This is done by
 	 * iterating over all the nodes in state->nodes and combining the
@@ -347,7 +374,7 @@ void DFA::update_state_transitions(State *state)
 	 * need to compute follow for the accept nodes in a protostate
 	 */
 	Cases cases;
-	for (hashedNodeVec::iterator i = state->proto.nnodes->begin(); i != state->proto.nnodes->end(); i++)
+	for (NodeVec::iterator i = state->proto.nnodes->begin(); i != state->proto.nnodes->end(); i++)
 		(*i)->follow(cases);
 
 	/* Now for each set of nodes in the computed transitions, make
@@ -357,7 +384,8 @@ void DFA::update_state_transitions(State *state)
 
 	/* check the default transition first */
 	if (cases.otherwise)
-		state->otherwise = add_new_state(cases.otherwise, nonmatching);
+		state->otherwise = add_new_state(opts, cases.otherwise,
+						 nonmatching);
 	else
 		state->otherwise = nonmatching;
 
@@ -366,7 +394,17 @@ void DFA::update_state_transitions(State *state)
 	 */
 	for (Cases::iterator j = cases.begin(); j != cases.end(); j++) {
 		State *target;
-		target = add_new_state(j->second, nonmatching);
+		try {
+			target = add_new_state(opts, j->second, nonmatching);
+		} catch (int error) {
+			/* when add_new_state fails, there could still
+			 * be NodeSets in the rest of cases, so clean
+			 * them up before re-throwing the exception */
+			for (Cases::iterator k = ++j; k != cases.end(); k++) {
+				delete k->second;
+			}
+			throw error;
+		}
 
 		/* Don't insert transition that the otherwise transition
 		 * already covers
@@ -391,12 +429,12 @@ void DFA::dump_node_to_dfa(void)
 		cerr << "  " << (*i)->label << " <= " << (*i)->proto << "\n";
 }
 
-void DFA::process_work_queue(const char *header, dfaflags_t flags)
+void DFA::process_work_queue(const char *header, optflags const &opts)
 {
 	int i = 0;
 
 	while (!work_queue.empty()) {
-		if (i % 1000 == 0 && (flags & DFA_DUMP_PROGRESS)) {
+		if (i % 1000 == 0 && (opts.dump & DUMP_DFA_PROGRESS)) {
 			cerr << "\033[2K" << header << ": queue "
 			     << work_queue.size()
 			     << "\tstates "
@@ -413,14 +451,14 @@ void DFA::process_work_queue(const char *header, dfaflags_t flags)
 		/* Update 'from's transitions, and if it transitions to any
 		 * unknown State create it and add it to the work_queue
 		 */
-		update_state_transitions(from);
+		update_state_transitions(opts, from);
 	}  /* while (!work_queue.empty()) */
 }
 
 /**
  * Construct a DFA from a syntax tree.
  */
-DFA::DFA(Node *root, dfaflags_t flags, bool buildfiledfa): root(root), filedfa(buildfiledfa)
+DFA::DFA(Node *root, optflags const &opts, bool buildfiledfa): root(root), filedfa(buildfiledfa)
 {
 	diffcount = 0;		/* set by diff_encode */
 	max_range = 256;
@@ -428,7 +466,7 @@ DFA::DFA(Node *root, dfaflags_t flags, bool buildfiledfa): root(root), filedfa(b
 	oob_range = 0;
 	ord_range = 8;
 
-	if (flags & DFA_DUMP_PROGRESS)
+	if (opts.dump & DUMP_DFA_PROGRESS)
 		fprintf(stderr, "Creating dfa:\r");
 
 	for (depth_first_traversal i(root); i; i++) {
@@ -437,14 +475,14 @@ DFA::DFA(Node *root, dfaflags_t flags, bool buildfiledfa): root(root), filedfa(b
 		(*i)->compute_lastpos();
 	}
 
-	if (flags & DFA_DUMP_PROGRESS)
+	if (opts.dump & DUMP_DFA_PROGRESS)
 		fprintf(stderr, "Creating dfa: followpos\r");
 	for (depth_first_traversal i(root); i; i++) {
 		(*i)->compute_followpos();
 	}
 
-	nonmatching = add_new_state(new NodeSet, NULL);
-	start = add_new_state(new NodeSet(root->firstpos), nonmatching);
+	nonmatching = add_new_state(opts, new NodeSet, NULL);
+	start = add_new_state(opts, new NodeSet(root->firstpos), nonmatching);
 
 	/* the work_queue contains the states that need to have their
 	 * transitions computed.  This could be done with a recursive
@@ -457,7 +495,7 @@ DFA::DFA(Node *root, dfaflags_t flags, bool buildfiledfa): root(root), filedfa(b
 	 *       work_queue at any given time, thus reducing peak memory use.
 	 */
 	work_queue.push_back(start);
-	process_work_queue("Creating dfa", flags);
+	process_work_queue("Creating dfa", opts);
 	max_range += oob_range;
 	/* if oob_range is ever greater than 256 need to move to computing this */
 	if (oob_range)
@@ -471,10 +509,10 @@ DFA::DFA(Node *root, dfaflags_t flags, bool buildfiledfa): root(root), filedfa(b
 		(*i)->followpos.clear();
 	}
 
-	if (flags & DFA_DUMP_NODE_TO_DFA)
+	if (opts.dump & DUMP_DFA_NODE_TO_DFA)
 		dump_node_to_dfa();
 
-	if (flags & (DFA_DUMP_STATS)) {
+	if (opts.dump & (DUMP_DFA_STATS)) {
 		cerr << "\033[2KCreated dfa: states "
 		     << states.size()
 		     << " proto { "
@@ -496,11 +534,7 @@ DFA::DFA(Node *root, dfaflags_t flags, bool buildfiledfa): root(root), filedfa(b
 
 DFA::~DFA()
 {
-	anodes_cache.clear();
-	nnodes_cache.clear();
-
-	for (Partition::iterator i = states.begin(); i != states.end(); i++)
-		delete *i;
+	cleanup();
 }
 
 State *DFA::match_len(State *state, const char *str, size_t len)
@@ -526,21 +560,17 @@ State *DFA::match(const char *str)
 
 void DFA::dump_uniq_perms(const char *s)
 {
-	set<perms_t> uniq;
-	for (Partition::iterator i = states.begin(); i != states.end(); i++)
-		uniq.insert((*i)->perms);
-
-	cerr << "Unique Permission sets: " << s << " (" << uniq.size() << ")\n";
+	cerr << "Unique Permission sets: " << s << " (" << uniq_perms.size() << ")\n";
 	cerr << "----------------------\n";
-	for (set<perms_t >::iterator i = uniq.begin(); i != uniq.end(); i++) {
-		cerr << "  allow:" << hex << i->allow << " deny:"
-		     << i->deny << " audit:" << i->audit
-		     << " quiet:" << i->quiet << dec << "\n";
+	for (std::set<perms_t *>::iterator i = uniq_perms.begin(); i != uniq_perms.end(); i++) {
+	  cerr << "  allow:" << hex << (*i)->allow << " deny:"
+	       << (*i)->deny << " audit:" << (*i)->audit
+	       << " quiet:" << (*i)->quiet << " prompt:" << (*i)->prompt <<  dec << "\n";
 	}
 }
 
 /* Remove dead or unreachable states */
-void DFA::remove_unreachable(dfaflags_t flags)
+void DFA::remove_unreachable(optflags const &opts)
 {
 	set<State *> reachable;
 
@@ -571,12 +601,12 @@ void DFA::remove_unreachable(dfaflags_t flags)
 			next = i;
 			next++;
 			if (reachable.find(*i) == reachable.end()) {
-				if (flags & DFA_DUMP_UNREACHABLE) {
+				if (opts.dump & DUMP_DFA_UNREACHABLE) {
 					cerr << "unreachable: " << **i;
 					if (*i == start)
 						cerr << " <==";
-					if ((*i)->perms.is_accept())
-						(*i)->perms.dump(cerr);
+					if ((*i)->perms->is_accept())
+						(*i)->perms->dump(cerr);
 					cerr << "\n";
 				}
 				State *current = *i;
@@ -586,7 +616,7 @@ void DFA::remove_unreachable(dfaflags_t flags)
 			}
 		}
 
-		if (count && (flags & DFA_DUMP_STATS))
+		if (count && (opts.dump & DUMP_DFA_STATS))
 			cerr << "DFA: states " << states.size() << " removed "
 			     << count << " unreachable states\n";
 	}
@@ -638,49 +668,43 @@ bool DFA::same_mappings(State *s1, State *s2)
 int DFA::apply_and_clear_deny(void)
 {
 	int c = 0;
+	/* TODO: update to remove perms that are no longer in use */
 	for (Partition::iterator i = states.begin(); i != states.end(); i++)
-		c += (*i)->apply_and_clear_deny();
+		c += (*i)->apply_and_clear_deny(uniq_perms);
 
 	return c;
 }
 
+
+typedef map<perms_t *, Partition *, deref_less_than_perms> PermMap;
+
 /* minimize the number of dfa states */
-void DFA::minimize(dfaflags_t flags)
+void DFA::minimize(optflags const &opts)
 {
-	map<pair<uint64_t, size_t>, Partition *> perm_map;
+	PermMap perm_map;
 	list<Partition *> partitions;
 
 	/* Set up the initial partitions
-	 * minimium of - 1 non accepting, and 1 accepting
-	 * if trans hashing is used the accepting and non-accepting partitions
-	 * can be further split based on the number and type of transitions
-	 * a state makes.
-	 * If permission hashing is enabled the accepting partitions can
-	 * be further divided by permissions.  This can result in not
-	 * obtaining a truely minimized dfa but comes close, and can speedup
-	 * minimization.
+	 * minimum of - 1 non accepting, and 1 accepting
 	 */
 	int accept_count = 0;
 	int final_accept = 0;
 	for (Partition::iterator i = states.begin(); i != states.end(); i++) {
-		size_t hash = 0;
-		uint64_t permtype = ((uint64_t) (PACK_AUDIT_CTL((*i)->perms.audit, (*i)->perms.quiet & (*i)->perms.deny)) << 32) | (uint64_t) (*i)->perms.allow;
-		pair<uint64_t, size_t> group = make_pair(permtype, hash);
-		map<pair<uint64_t, size_t>, Partition *>::iterator p = perm_map.find(group);
+		PermMap::iterator p = perm_map.find((*i)->perms);
 		if (p == perm_map.end()) {
 			Partition *part = new Partition();
 			part->push_back(*i);
-			perm_map.insert(make_pair(group, part));
+			perm_map.insert(make_pair((*i)->perms, part));
 			partitions.push_back(part);
 			(*i)->partition = part;
-			if (permtype)
+			if ((*i)->perms->is_accept())
 				accept_count++;
 		} else {
 			(*i)->partition = p->second;
 			p->second->push_back(*i);
 		}
 
-		if ((flags & DFA_DUMP_PROGRESS) && (partitions.size() % 1000 == 0))
+		if ((opts.dump & DUMP_DFA_PROGRESS) && (partitions.size() % 1000 == 0))
 			cerr << "\033[2KMinimize dfa: partitions "
 			     << partitions.size() << "\tinit " << partitions.size()
 			     << " (accept " << accept_count << ")\r";
@@ -692,7 +716,7 @@ void DFA::minimize(dfaflags_t flags)
 	perm_map.clear();
 
 	int init_count = partitions.size();
-	if (flags & DFA_DUMP_PROGRESS)
+	if (opts.dump & DUMP_DFA_PROGRESS)
 		cerr << "\033[2KMinimize dfa: partitions " << partitions.size()
 		     << "\tinit " << init_count << " (accept "
 		     << accept_count << ")\r";
@@ -734,7 +758,7 @@ void DFA::minimize(dfaflags_t flags)
 					(*m)->partition = new_part;
 				}
 			}
-			if ((flags & DFA_DUMP_PROGRESS) && (partitions.size() % 100 == 0))
+			if ((opts.dump & DUMP_DFA_PROGRESS) && (partitions.size() % 100 == 0))
 				cerr << "\033[2KMinimize dfa: partitions "
 				     << partitions.size() << "\tinit "
 				     << init_count << " (accept "
@@ -743,7 +767,7 @@ void DFA::minimize(dfaflags_t flags)
 	} while (new_part_count);
 
 	if (partitions.size() == states.size()) {
-		if (flags & DFA_DUMP_STATS)
+		if (opts.dump & DUMP_DFA_STATS)
 			cerr << "\033[2KDfa minimization no states removed: partitions "
 			     << partitions.size() << "\tinit " << init_count
 			     << " (accept " << accept_count << ")\n";
@@ -753,17 +777,17 @@ void DFA::minimize(dfaflags_t flags)
 
 	/* Remap the dfa so it uses the representative states
 	 * Use the first state of a partition as the representative state
-	 * At this point all states with in a partion have transitions
+	 * At this point all states with in a partition have transitions
 	 * to states within the same partitions, however this can slow
 	 * down compressed dfa compression as there are more states,
 	 */
-	if (flags & DFA_DUMP_MIN_PARTS)
+	if (opts.dump & DUMP_DFA_MIN_PARTS)
 		cerr << "Partitions after minimization\n";
 	for (list<Partition *>::iterator p = partitions.begin();
 	     p != partitions.end(); p++) {
 		/* representative state for this partition */
 		State *rep = *((*p)->begin());
-		if (flags & DFA_DUMP_MIN_PARTS)
+		if (opts.dump & DUMP_DFA_MIN_PARTS)
 			cerr << *rep << " : ";
 
 		/* update representative state's transitions */
@@ -782,17 +806,31 @@ void DFA::minimize(dfaflags_t flags)
 		/* clear the state label for all non representative states,
 		 * and accumulate permissions */
 		for (Partition::iterator i = ++(*p)->begin(); i != (*p)->end(); i++) {
-			if (flags & DFA_DUMP_MIN_PARTS)
+			if (opts.dump & DUMP_DFA_MIN_PARTS)
 				cerr << **i << ", ";
 			(*i)->label = -1;
-			rep->perms.add((*i)->perms, filedfa);
+			/* merging perms is only necessary if partitioning doesn't
+			 * completely separate base on unique perms.
+			 * atm this should be the case. Code to handle case is
+			 * only to document what should be done if this is allowed
+			 * in the future
+			 */
+			if ((rep->perms != (*i)->perms) &&
+			    (*rep->perms != *(*i)->perms)) {
+				throw std::runtime_error("Minimization different permissions in same partion");
+				/*
+				perms_t tmp = *rep->perms;
+				tmp.add((*i)->perms, filedfa);
+				rep->perms = uniq_perms.insert(tmp);
+				*/
+			}
 		}
-		if (rep->perms.is_accept())
+		if (rep->perms->is_accept())
 			final_accept++;
-		if (flags & DFA_DUMP_MIN_PARTS)
+		if (opts.dump & DUMP_DFA_MIN_PARTS)
 			cerr << "\n";
 	}
-	if (flags & DFA_DUMP_STATS)
+	if (opts.dump & DUMP_DFA_STATS)
 		cerr << "\033[2KMinimized dfa: final partitions "
 		     << partitions.size() << " (accept " << final_accept
 		     << ")" << "\tinit " << init_count << " (accept "
@@ -813,7 +851,7 @@ void DFA::minimize(dfaflags_t flags)
 	}
 
 	/* Now that the states have been remapped, remove all states
-	 * that are not the representive states for their partition, they
+	 * that are not the representative states for their partition, they
 	 * will have a label == -1
 	 */
 	for (Partition::iterator i = states.begin(); i != states.end();) {
@@ -875,7 +913,7 @@ static int diff_partition(State *state, Partition &part, int max_range, int uppe
 
 /**
  * diff_encode - compress dfa by differentially encoding state transitions
- * @dfa_flags: flags controling dfa creation
+ * @opts: flags controlling dfa creation
  *
  * This function reduces the number of transitions that need to be stored
  * by encoding transitions as the difference between the state and a
@@ -889,7 +927,7 @@ static int diff_partition(State *state, Partition &part, int max_range, int uppe
  *   - The number of state transitions needed to match an input of length
  *     m will be 2m
  *
- * To guarentee this the ordering and distance calculation is done in the
+ * To guarantee this the ordering and distance calculation is done in the
  * following manner.
  * - A DAG of the DFA is created starting with the start state(s).
  * - A state can only be relative (have a differential encoding) to
@@ -910,7 +948,7 @@ static int diff_partition(State *state, Partition &part, int max_range, int uppe
  * the state transition at most will only move 1 deeper into the DAG so for
  * the next state the maximum number of states traversed is 2*7.
  */
-void DFA::diff_encode(dfaflags_t flags)
+void DFA::diff_encode(optflags const &opts)
 {
 	DiffDag *dag;
 	unsigned int xcount = 0, xweight = 0, transitions = 0, depth = 0;
@@ -965,7 +1003,7 @@ void DFA::diff_encode(dfaflags_t flags)
 			}
 		}
 
-		if ((flags & DFA_DUMP_DIFF_PROGRESS) && (i % 100 == 0))
+		if ((opts.dump & DUMP_DFA_DIFF_PROGRESS) && (i % 100 == 0))
 			cerr << "\033[2KDiff Encode: " << i << " of "
 			     << tail << ".  Diff states " << xcount
 			     << " Savings " << xweight << "\r";
@@ -992,7 +1030,7 @@ void DFA::diff_encode(dfaflags_t flags)
 		}
 	}
 
-	if (flags & DFA_DUMP_DIFF_STATS)
+	if (opts.dump & DUMP_DFA_DIFF_STATS)
 		cerr << "Diff encode  states: " << diffcount << " of "
                      << tail << " reached @ depth "  << depth << ". "
 		     <<  aweight << " trans removed\n";
@@ -1070,15 +1108,17 @@ void DFA::dump_diff_encode(ostream &os)
 /**
  * text-dump the DFA (for debugging).
  */
-void DFA::dump(ostream & os)
+void DFA::dump(ostream &os, Renumber_Map *renum)
 {
 	for (Partition::iterator i = states.begin(); i != states.end(); i++) {
-		if (*i == start || (*i)->perms.is_accept()) {
-			os << **i;
-			if (*i == start)
-				os << " <== (allow/deny/audit/quiet)";
-			if ((*i)->perms.is_accept())
-				(*i)->perms.dump(os);
+		if (*i == start || (*i)->perms->is_accept()) {
+			os << make_pair(*i, renum);
+			if (*i == start) {
+				os << " <== ";
+				(*i)->perms->dump_header(os);
+			}
+			if ((*i)->perms->is_accept())
+				(*i)->perms->dump(os);
 			os << "\n";
 		}
 	}
@@ -1095,17 +1135,17 @@ void DFA::dump(ostream & os)
 			} else {
 				if (first) {
 					first = false;
-					os << **i << " perms: ";
-					if ((*i)->perms.is_accept())
-						(*i)->perms.dump(os);
+					os << make_pair(*i, renum) << " perms: ";
+					if ((*i)->perms->is_accept())
+						(*i)->perms->dump(os);
 					else
 						os << "none";
 					os << "\n";
 				}
 				os << "    "; j->first.dump(os) << " -> " <<
-					*(j)->second;
-				if ((j)->second->perms.is_accept())
-					os << " ", (j->second)->perms.dump(os);
+					make_pair(j->second, renum);
+				if ((j)->second->perms->is_accept())
+					os << " ", (j->second)->perms->dump(os);
 				os << "\n";
 			}
 		}
@@ -1113,9 +1153,9 @@ void DFA::dump(ostream & os)
 		if ((*i)->otherwise != nonmatching) {
 			if (first) {
 				first = false;
-				os << **i << " perms: ";
-				if ((*i)->perms.is_accept())
-					(*i)->perms.dump(os);
+				os << make_pair(*i, renum) << " perms: ";
+				if ((*i)->perms->is_accept())
+					(*i)->perms->dump(os);
 				else
 					os << "none";
 				os << "\n";
@@ -1128,9 +1168,9 @@ void DFA::dump(ostream & os)
 					os << *k;
 				}
 			}
-			os << "] -> " << *(*i)->otherwise;
-			if ((*i)->otherwise->perms.is_accept())
-				os << " ", (*i)->otherwise->perms.dump(os);
+			os << "] -> " << make_pair((*i)->otherwise, renum);
+			if ((*i)->otherwise->perms->is_accept())
+				os << " ", (*i)->otherwise->perms->dump(os);
 			os << "\n";
 		}
 	}
@@ -1152,9 +1192,9 @@ void DFA::dump_dot_graph(ostream & os)
 		if (*i == start) {
 			os << "\t\tstyle=bold" << "\n";
 		}
-		if ((*i)->perms.is_accept()) {
+		if ((*i)->perms->is_accept()) {
 			os << "\t\tlabel=\"" << **i << "\\n";
-			(*i)->perms.dump(os);
+			(*i)->perms->dump(os);
 			os << "\"\n";
 		}
 		os << "\t]" << "\n";
@@ -1194,7 +1234,7 @@ void DFA::dump_dot_graph(ostream & os)
  * Compute character equivalence classes in the DFA to save space in the
  * transition table.
  */
-map<transchar, transchar> DFA::equivalence_classes(dfaflags_t flags)
+map<transchar, transchar> DFA::equivalence_classes(optflags const &opts)
 {
 	map<transchar, transchar> classes;
 	transchar next_class = 1;
@@ -1251,7 +1291,7 @@ map<transchar, transchar> DFA::equivalence_classes(dfaflags_t flags)
 		}
 	}
 
-	if (flags & DFA_DUMP_EQUIV_STATS)
+	if (opts.dump & DUMP_DFA_EQUIV_STATS)
 		fprintf(stderr, "Equiv class reduces to %d classes\n",
 			next_class.c - 1);
 	return classes;
@@ -1300,6 +1340,62 @@ void DFA::apply_equivalence_classes(map<transchar, transchar> &eq)
 	}
 }
 
+void DFA::compute_perms_table_ent(perms_t * const perms, size_t pos,
+				  std::vector <aa_perms> &perms_table,
+				  idxmap_t &idxmap, bool prompt)
+{
+	uint32_t accept1, accept2, accept3;
+
+	// until front end doesn't map the way it does
+	  perms->map_perms_to_accept(accept1, accept2, accept3, prompt);
+	idxmap.insert(make_pair(perms, pos));
+	if (filedfa) {
+		perms_table[pos] = compute_fperms_user(accept1, accept2, accept3);
+		perms_table[pos + 1] = compute_fperms_other(accept1, accept2, accept3);
+	} else {
+		perms_table[pos] = compute_perms_entry(accept1, accept2, accept3);
+	}
+}
+
+void DFA::compute_perms_table(vector <aa_perms> &perms_table, bool prompt)
+{
+	idxmap_t idxmap;
+
+	size_t mult = filedfa ? 2 : 1;
+	size_t pos = filedfa ? 2 : 1;
+
+	assert(states.size() >= 2);
+
+	perms_table.resize(uniq_perms.size()*mult);
+	compute_perms_table_ent(nonmatching->perms, 0, perms_table, idxmap,
+				prompt);
+	nonmatching->idx = 0;
+	start->idx = 0;
+
+	for (perms_t_Cache::const_iterator i = uniq_perms.cbegin(); i != uniq_perms.cend(); i++) {
+		if (*i == nonmatching->perms)
+			continue;
+		compute_perms_table_ent(*i, pos, perms_table, idxmap, prompt);
+		pos += mult;
+	}
+
+	// nonmatching and start need to be 0 and 1 so handle outside of loop
+	for (Partition::iterator i = states.begin(); i != states.end(); i++) {
+		if (*i == nonmatching || *i == start)
+			continue;
+		idxmap_t::iterator j = idxmap.find((*i)->perms);
+		if (j == idxmap.end()) {
+			perms_t_Cache::iterator k = uniq_perms.find((*i)->perms);
+			if (k == uniq_perms.end())
+				throw std::runtime_error("permission not in permission table map");
+			else
+				throw std::runtime_error("permission not in idx table map");
+		}
+		(*i)->idx = j->second;
+	}
+}
+
+
 #if 0
 typedef set <ImportantNode *>AcceptNodes;
 map<ImportantNode *, AcceptNodes> dominance(DFA & dfa)
@@ -1329,10 +1425,159 @@ map<ImportantNode *, AcceptNodes> dominance(DFA & dfa)
 }
 #endif
 
-static inline int diff_qualifiers(uint32_t perm1, uint32_t perm2)
+static inline int diff_qualifiers(perm32_t perm1, perm32_t perm2)
 {
 	return ((perm1 & AA_EXEC_TYPE) && (perm2 & AA_EXEC_TYPE) &&
 		(perm1 & AA_EXEC_TYPE) != (perm2 & AA_EXEC_TYPE));
+}
+
+// only applied if filedfa
+static void add_implied_ix_mmap(optflags const &opts, vector<int> &priority,
+				perm32_t &mask)
+{
+	// ix implies EXEC_MMAP
+	if ((mask & AA_MAY_EXEC) && (mask & AA_EXEC_INHERIT)) {
+		//USER_EXEC_MAP = 6
+		if (priority[EXEC_MMAP_SHIFT] <= priority[MAY_EXEC_SHIFT]) {
+			if (opts.dump & DUMP_DFA_PERMS)
+				cerr << "    " << "[6]<=" << priority[EXEC_MMAP_SHIFT] <<  " < " << priority[MAY_EXEC_SHIFT] << " adding implied m to " << hex << "mask: " << mask << dec;
+			mask |= AA_USER_EXEC_MMAP;
+			priority[EXEC_MMAP_SHIFT] = priority[MAY_EXEC_SHIFT];
+		} else if (opts.dump & DUMP_DFA_PERMS)
+				cerr << "    " << "[6]>" << priority[EXEC_MMAP_SHIFT] <<  " > " << priority[MAY_EXEC_SHIFT] << " skipping adding implied m to " << hex << "mask: " << mask << dec;
+
+	}
+	// ix implies EXEC_MMAP
+	if ((mask & AA_OTHER_EXEC) && (mask & AA_OTHER_EXEC_INHERIT)) {
+		//OTHER_EXEC_MAP = 20 = 6 (EXEC_MMAP_SHIFT) + 14 (AA_OTHER_SHIFT)
+		if (priority[EXEC_OTHER_MMAP_SHIFT] <= priority[MAY_OTHER_EXEC_SHIFT]) {
+			if (opts.dump & DUMP_DFA_PERMS)
+				cerr << "    " << "[20]<=" << priority[EXEC_OTHER_MMAP_SHIFT] <<  " < " << priority[MAY_OTHER_EXEC_SHIFT] << " adding implied m to " << hex << "mask: " << mask << dec;
+			mask |= AA_OTHER_EXEC_MMAP;
+			priority[EXEC_OTHER_MMAP_SHIFT] = priority[MAY_OTHER_EXEC_SHIFT];
+		} else if (opts.dump & DUMP_DFA_PERMS)
+				cerr << "    " << "[20]>" << priority[EXEC_OTHER_MMAP_SHIFT] <<  " > " << priority[MAY_OTHER_EXEC_SHIFT] << " skipping adding implied m to " << hex << "mask: " << mask << dec;
+
+	}
+}
+
+/* update a single permission based on priority
+ * - only called if match->perm | match-> audit bit set
+ */
+static int pri_update_perm(optflags const &opts, vector<int> &priority, int i,
+			   MatchFlag *match, perms_t &perms, bool filedfa)
+{
+	perm32_t xmask = 0;
+	perm32_t mask = 1 << i;
+	perm32_t amask = mask;
+
+	// scaling priority *4
+	int pri = match->priority<<2;
+
+	/* use priority to get proper ordering and application of the type
+	 * of match flag (rule type).
+	 *
+	 * Note: this is the last use of priority, it is dropped and not
+	 *       used in the backend.
+	 */
+	if (match->is_type(NODE_TYPE_DENYMATCHFLAG))
+		pri += 3;
+	// for exec permission bits and their audit control exact match
+	// has higher priority
+	else if (match->is_type(NODE_TYPE_EXACTMATCHFLAG) &&
+		 (mask & AA_EXEC_BITS))
+		pri += 2;
+	else if (!match->is_type(NODE_TYPE_PROMPTMATCHFLAG))
+		pri += 1;
+	// else prompt +0
+
+	if (priority[i] > pri) {
+		if (opts.dump & DUMP_DFA_PERMS)
+			cerr << "    " << match << "[" << i << "]=" << priority[i] << " > " << pri << " SKIPPING " << hex << (match->perms) << "/" << (match->audit) << dec << "\n";
+		return 0;
+	}
+
+	// drop once we move the xindex out of the perms in the front end
+	if (filedfa) {
+		if (mask & AA_USER_EXEC) {
+			xmask = AA_USER_EXEC_TYPE;
+			amask = mask | xmask;
+		} else if (mask & AA_OTHER_EXEC) {
+			xmask = AA_OTHER_EXEC_TYPE;
+			amask = mask | xmask;
+		}
+	}
+
+	if (opts.dump & DUMP_DFA_PERMS)
+		cerr << "  " << match << "[" << i << "]=" << priority[i] <<  " vs. " << pri << " mask: " << hex << mask << " xmask: " << xmask << " amask: " << amask << dec << "\n";
+	if (priority[i] < pri) {
+		if (opts.dump & DUMP_DFA_PERMS)
+			cerr << "    " << match << "[" << i << "]=" << priority[i] <<  " < " << pri << " clearing " << hex << "mask: " << amask << " from " << (perms.allow) << "/" << (perms.audit) << " -> " << dec;
+		priority[i] = pri;
+		perms.clear_bits(amask);
+		if (opts.dump & DUMP_DFA_PERMS)
+			cerr << hex << (perms.allow) << "/" << (perms.audit) << dec << "\n";
+	}
+
+	// the if conditions in order of permission priority
+	if (match->is_type(NODE_TYPE_DENYMATCHFLAG)) {
+		if (opts.dump & DUMP_DFA_PERMS)
+			cerr << "    " << match << "[" << i << "]=" << priority[i] << " <= " << pri << " deny " << hex << (match->perms & amask) << "/" << (match->audit & amask) << dec << "\n";
+		// deny x never implies mmap so not used here
+		perms.deny |= match->perms & amask;
+		perms.quiet |= match->audit & amask;
+
+		perms.allow &= ~amask;
+		perms.audit &= ~amask;
+		perms.prompt &= ~amask;
+	} else if (match->is_type(NODE_TYPE_EXACTMATCHFLAG)) {
+		/* exact match only asserts dominance on the XTYPE */
+		if (opts.dump & DUMP_DFA_PERMS)
+			cerr << "    " << match << "[" << i << "]=" << priority[i] <<  " <= " << pri << " exact " << hex << (match->perms & amask) << "/" << (match->audit & amask) << dec << "\n";
+		if (filedfa && xmask && (perms.allow & amask) &&
+		    !is_merged_x_consistent(perms.allow, match->perms & amask)) {
+			if (opts.dump & DUMP_DFA_PERMS)
+				cerr << "    " << match << "[" << i << "]=" << priority[i] <<  " <= " << pri << " exact match conflict" << "\n";
+			return 1;
+		}
+		// dominance is only done for XTYPE so only clear that
+		// note xmask only set if setting x perm bit, so this
+		// won't clear for other bit types
+		perms.allow &= ~xmask;
+		perms.audit &= ~xmask;
+		perms.prompt &= ~xmask;
+
+		perms.allow |= match->perms & amask;
+		perms.audit |= match->audit & amask;
+		// can't specify exact prompt atm
+	} else if (!match->is_type(NODE_TYPE_PROMPTMATCHFLAG)) {
+		// allow perms, if exact has been encountered will
+		// already be set if overlaps x here, don't conflict,
+		// because exact will override
+		if (opts.dump & DUMP_DFA_PERMS)
+			cerr << "    " << match << "[" << i << "]=" << priority[i] <<  " <= " << pri << " allow " << hex << (match->perms & amask) << "/" << (match->audit & amask) << dec << "\n";
+		if (filedfa && xmask && (perms.allow & amask) &&
+		    !is_merged_x_consistent(perms.allow, match->perms & amask)) {
+			if (opts.dump & DUMP_DFA_PERMS)
+				cerr << "    " << match << "[" << i << "]=" << priority[i] <<  " <= " << pri << " allow match conflict" << "\n";
+			return 1;
+		}
+		perms.allow |= match->perms & amask;
+		perms.audit |= match->audit & amask;
+	} else { // if (match->is_type(NODE_TYPE_PROMPTMATCHFLAG)) {
+		if (opts.dump & DUMP_DFA_PERMS)
+			cerr << "    " << match << "[" << i << "]=" << priority[i] <<  " <= " << pri << " prompt " << hex << (match->perms & amask) << "/" << (match->audit & amask) << dec << "\n";
+		if (filedfa && xmask && (perms.allow & amask) &&
+		    !is_merged_x_consistent(perms.allow, match->perms & amask)) {
+			if (opts.dump & DUMP_DFA_PERMS)
+				cerr << "    " << match << "[" << i << "]=" << priority[i] <<  " <= " << pri << " prompt match conflict" << "\n";
+			return 1;
+		}
+		perms.prompt |= match->perms & amask;
+		perms.audit |= match->audit & amask;
+	}
+
+	return 0;
 }
 
 /**
@@ -1340,67 +1585,51 @@ static inline int diff_qualifiers(uint32_t perm1, uint32_t perm2)
  * have any exact matches, then they override the execute and safe
  * execute flags.
  */
-int accept_perms(NodeSet *state, perms_t &perms, bool filedfa)
+perms_t::perms_t(optflags const &opts, NodeVec *state, bool filedfa)
 {
 	int error = 0;
-	uint32_t exact_match_allow = 0;
-	uint32_t exact_audit = 0;
-
-	perms.clear();
+	// scaling priority by *4
+	std::vector<int>  priority(sizeof(perm32_t)*8,  MIN_INTERNAL_PRIORITY*4);	// 32 but wasn't tied to perm32_t
+	clear();
 
 	if (!state)
-		return error;
-
-	for (NodeSet::iterator i = state->begin(); i != state->end(); i++) {
-		MatchFlag *match;
-		if (!(match = dynamic_cast<MatchFlag *>(*i)))
+		return;
+	if (opts.dump & DUMP_DFA_PERMS) {
+		cerr << "Building Perms";
+		if (filedfa)
+			cerr << " (file)";
+		cerr << "\n";
+	}
+	for (NodeVec::iterator i = state->begin(); i != state->end(); i++) {
+		if (!(*i)->is_type(NODE_TYPE_MATCHFLAG))
 			continue;
-		if (dynamic_cast<ExactMatchFlag *>(match)) {
-			/* exact match only ever happens with x */
-			if (filedfa && !is_merged_x_consistent(exact_match_allow,
-						    match->flag))
-				error = 1;;
-			exact_match_allow |= match->flag;
-			exact_audit |= match->audit;
-		} else if (dynamic_cast<DenyMatchFlag *>(match)) {
-			perms.deny |= match->flag;
-			perms.quiet |= match->audit;
-		} else {
-			if (filedfa && !is_merged_x_consistent(perms.allow, match->flag))
-				error = 1;
-			perms.allow |= match->flag;
-			perms.audit |= match->audit;
+
+		MatchFlag *match = static_cast<MatchFlag *>(*i);
+
+		perm32_t bit = 1;
+		perm32_t check = match->perms | match->audit;
+		if (filedfa)
+			check &= ~ALL_AA_EXEC_TYPE;
+
+		for (int i = 0;  check; i++) {
+			if (check & bit) {
+				error = pri_update_perm(opts, priority, i, match, *this, filedfa);
+				if (error)
+					goto out;
+			}
+			check &= ~bit;
+			bit <<= 1;
 		}
 	}
-
-	if (filedfa) {
-		perms.allow |= exact_match_allow & ~(ALL_AA_EXEC_TYPE);
-		perms.audit |= exact_audit & ~(ALL_AA_EXEC_TYPE);
-	} else {
-		perms.allow |= exact_match_allow;
-		perms.audit |= exact_audit;
+	if (filedfa && (allow & AA_EXEC_BITS)) {
+		add_implied_ix_mmap(opts, priority, allow);
 	}
-	if (exact_match_allow & AA_USER_EXEC) {
-		perms.allow = (exact_match_allow & AA_USER_EXEC_TYPE) |
-			(perms.allow & ~AA_USER_EXEC_TYPE);
-		perms.exact = AA_USER_EXEC_TYPE;
+	if (opts.dump & DUMP_DFA_PERMS) {
+		cerr << "  computed: ";  dump(cerr); cerr << "\n";
 	}
-	if (exact_match_allow & AA_OTHER_EXEC) {
-		perms.allow = (exact_match_allow & AA_OTHER_EXEC_TYPE) |
-			(perms.allow & ~AA_OTHER_EXEC_TYPE);
-		perms.exact |= AA_OTHER_EXEC_TYPE;
-	}
-	if (filedfa && (AA_USER_EXEC & perms.deny))
-		perms.deny |= AA_USER_EXEC_TYPE;
-
-	if (filedfa && (AA_OTHER_EXEC & perms.deny))
-		perms.deny |= AA_OTHER_EXEC_TYPE;
-
-	perms.allow &= ~perms.deny;
-	perms.quiet &= perms.deny;
-
-	if (error)
+out:
+	if (error) {
 		fprintf(stderr, "profile has merged rule with conflicting x modifiers\n");
-
-	return error;
+		throw error;
+	}
 }

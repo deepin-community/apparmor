@@ -2,18 +2,34 @@
  *   Copyright (c) 2014-2017
  *   Canonical, Ltd. (All rights reserved)
  *
- *   This program is free software; you can redistribute it and/or
- *   modify it under the terms of version 2 of the GNU General Public
- *   License published by the Free Software Foundation.
+ * Due to historical reasons the code is this file is dual licensed
+ * under GNU Lesser General Public License, version 2.1 and version 2
+ * of the GNU General Public License. Both included below
  *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ * The libapparmor library is licensed under the terms of the GNU
+ * Lesser General Public License, version 2.1. Please see the file
+ * COPYING.LGPL.
  *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, contact Novell, Inc. or Canonical
- *   Ltd.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of version 2 of the GNU General Public
+ * License published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, contact Novell, Inc. or Canonical
+ * Ltd.
  */
 
 #include <errno.h>
@@ -35,6 +51,7 @@
 #include "PMurHash.h"
 
 #define FEATURES_FILE "/sys/kernel/security/apparmor/features"
+#define CACHE_FEATURES_FILE ".features"
 
 #define HASH_SIZE (8 + 1) /* 32 bits binary to hex + NUL terminator */
 #define STRING_SIZE 8192
@@ -398,6 +415,10 @@ static bool walk_one(const char **str, const struct component *component,
 			i = 0;
 
 		cur++;
+
+		/* Partial match, continue to search */
+		if (i == component->len && !isbrace_space_or_nul(*cur))
+			i = 0;
 	}
 
 	/* Return false if a full match was not found */
@@ -658,6 +679,44 @@ bool aa_features_is_equal(aa_features *features1, aa_features *features2)
 	       strcmp(features1->string, features2->string) == 0;
 }
 
+/**
+ * aa_features_check - check if features from a directory matches an aa_features object
+ * @dirfd: a directory file descriptory or AT_FDCWD (see openat(2))
+ * @path: the path containing the features
+ * @features: features to be matched against
+ *
+ * Returns: 0 on success, -1 on failure. errno is set to EEXIST when there's not a match
+ */
+int aa_features_check(int dirfd, const char *path,
+		      aa_features *features)
+{
+	aa_features *local_features = NULL;
+	autofree char *name = NULL;
+	bool rc;
+	int len;
+
+	len = asprintf(&name, "%s/%s", path, CACHE_FEATURES_FILE);
+	if (len == -1) {
+		errno = ENOMEM;
+		return -1;
+	}
+
+	/* verify that path dir .features matches */
+	if (aa_features_new(&local_features, dirfd, name)) {
+		PDEBUG("could not setup new features object for dirfd '%d' '%s'\n", dirfd, name);
+		return -1;
+	}
+
+	rc = aa_features_is_equal(local_features, features);
+	aa_features_unref(local_features);
+	if (!rc) {
+		errno = EEXIST;
+		return -1;
+	}
+
+	return 0;
+}
+
 static const char *features_lookup(aa_features *features, const char *str)
 {
 	const char *features_string = features->string;
@@ -666,7 +725,7 @@ static const char *features_lookup(aa_features *features, const char *str)
 
 	/* Empty strings are not accepted. Neither are leading '/' chars. */
 	if (!str || str[0] == '/')
-		return false;
+		return NULL;
 
 	/**
 	 * Break @str into an array of components. For example,
@@ -679,7 +738,7 @@ static const char *features_lookup(aa_features *features, const char *str)
 
 	/* At least one valid token is required */
 	if (!num_components)
-		return false;
+		return NULL;
 
 	/* Ensure that all components are valid and found */
 	for (i = 0; i < num_components; i++) {

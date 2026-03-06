@@ -10,15 +10,15 @@
 # ------------------------------------------------------------------
 # vim: ft=apparmor
 
-abi <abi/3.0>,
+abi <abi/4.0>,
 
 include <tunables/global>
 
 profile dovecot-imap-login /usr/lib*/dovecot/imap-login {
   include <abstractions/base>
   include <abstractions/dovecot-common>
-  include <abstractions/openssl>
 
+  capability dac_override,
   capability setuid,
   capability sys_chroot,
 

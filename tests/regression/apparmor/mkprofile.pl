@@ -164,8 +164,14 @@ sub gen_netdomain($@) {
 
 sub gen_network($@) {
   my ($rule, $qualifier) = @_;
-  my @rules = split (/:/, $rule);
-  push (@{$output_rules{$hat}}, "  ${qualifier}@rules,\n");
+  if ($rule =~ /^network:/) {
+    my @rules = split (/:/, $rule);
+    push (@{$output_rules{$hat}}, "  ${qualifier}@rules,\n");
+  } else {
+    # if using fine grained mediation, separator needs to be ; because of ipv6
+    my @rules = split (/;/, $rule);
+    push (@{$output_rules{$hat}}, "  ${qualifier}@rules,\n");
+  }
 }
 
 sub gen_unix($@) {
@@ -310,6 +316,20 @@ sub gen_pivot_root($@) {
     }
 }
 
+sub gen_userns($@) {
+    my ($rule, $qualifier) = @_;
+    my @rules = split (/:/, $rule);
+    if (@rules == 2) {
+	if ($rules[1] =~ /^ALL$/) {
+	    push (@{$output_rules{$hat}}, "  ${qualifier}userns,\n");
+	} else {
+	    push (@{$output_rules{$hat}}, "  ${qualifier}userns $rules[1],\n");
+	}
+    } else {
+	(!$nowarn) && print STDERR "Warning: invalid userns description '$rule', ignored\n";
+    }
+}
+
 sub gen_file($@) {
   my ($rule, $qualifier) = @_;
   if (!$qualifier) {
@@ -409,6 +429,42 @@ sub gen_path($) {
   }
 }
 
+sub gen_mqueue($@) {
+  my ($rule, $qualifier) = @_;
+  my @rules = split (/:/, $rule);
+  if (@rules == 2) {
+      if ($rules[1] =~ /^ALL$/) {
+	  push (@{$output_rules{$hat}}, "  ${qualifier}mqueue,\n");
+      } else {
+	  push (@{$output_rules{$hat}}, "  ${qualifier}mqueue $rules[1],\n");
+      }
+  } elsif (@rules == 3) {
+      push (@{$output_rules{$hat}}, "  ${qualifier}mqueue $rules[1] $rules[2],\n");
+  } elsif (@rules == 4) {
+      push (@{$output_rules{$hat}}, "  ${qualifier}mqueue $rules[1] $rules[2] $rules[3],\n");
+  } elsif (@rules == 5) {
+      push (@{$output_rules{$hat}}, "  ${qualifier}mqueue $rules[1] $rules[2] $rules[3] $rules[4],\n");
+  } else {
+      (!$nowarn) && print STDERR "Warning: invalid mqueue description '$rule', ignored\n";
+  }
+}
+
+sub gen_io_uring($@) {
+  my ($rule, $qualifier) = @_;
+  my @rules = split (/:/, $rule);
+  if (@rules == 2) {
+      if ($rules[1] =~ /^ALL$/) {
+	  push (@{$output_rules{$hat}}, "  ${qualifier}io_uring,\n");
+      } else {
+	  push (@{$output_rules{$hat}}, "  ${qualifier}io_uring $rules[1],\n");
+      }
+  } elsif (@rules == 3) {
+      push (@{$output_rules{$hat}}, "  ${qualifier}io_uring $rules[1] $rules[2],\n");
+  } else {
+      (!$nowarn) && print STDERR "Warning: invalid io_uring description '$rule', ignored\n";
+  }
+}
+
 sub emit_flags($) {
   my $hat = shift;
 
@@ -445,7 +501,7 @@ sub gen_from_args() {
     if ($rule =~ /^(tcp|udp)/) {
       # netdomain rules
       gen_netdomain($rule, $qualifier);
-    } elsif ($rule =~ /^network:/) {
+    } elsif ($rule =~ /^network(:|;)/) {
       gen_network($rule, $qualifier);
     } elsif ($rule =~ /^unix:/) {
       gen_unix($rule, $qualifier);
@@ -463,6 +519,8 @@ sub gen_from_args() {
       gen_umount($rule, $qualifier);
     } elsif ($rule =~ /^pivot_root:/) {
       gen_pivot_root($rule, $qualifier);
+    } elsif ($rule =~ /^userns:/) {
+      gen_userns($rule, $qualifier)
     } elsif ($rule =~ /^flag:/) {
       gen_flag($rule);
     } elsif ($rule =~ /^hat:/) {
@@ -476,6 +534,10 @@ sub gen_from_args() {
       gen_xattr($rule);
     } elsif ($rule =~ /^path:/) {
       gen_path($rule);
+    } elsif ($rule =~ /^mqueue:/) {
+      gen_mqueue($rule, $qualifier);
+    } elsif ($rule =~ /^io_uring:/) {
+      gen_io_uring($rule, $qualifier);
     } else {
       gen_file($rule, $qualifier);
     }

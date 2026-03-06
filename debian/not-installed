@@ -20,11 +20,17 @@ usr/share/apparmor/extra-profiles/usr.sbin.mysqld
 etc/apparmor.d/tunables/ntpd
 etc/apparmor.d/usr.sbin.ntpd
 
+# Managed by the thunderbird package
+etc/apparmor.d/thunderbird
+
 # Not installed on purpose (see #866636)
 usr/lib/*/libapparmor.la
 
 # Not installed on purpose (see #1039668)
 etc/apparmor.d/abstractions/ubuntu-browsers.d/chromium-browser
+
+# Not installed on purpose (see #1100135)
+etc/apparmor.d/podman
 
 # Not installed on purpose
 etc/apparmor.d/usr.lib.apache2.mpm-prefork.apache2

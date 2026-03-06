@@ -1,6 +1,6 @@
 # Last Modified: Wed Nov  5 03:32:59 2008
 
-abi <abi/3.0>,
+abi <abi/4.0>,
 
 include <tunables/global>
 
@@ -10,6 +10,8 @@ profile firefox.sh /usr/lib/firefox/firefox.sh {
   include <abstractions/consoles>
 
   deny capability sys_ptrace,
+
+  /usr/lib/firefox/firefox.sh mr,
 
   /{usr/,}bin/basename rix,
   /{usr/,}bin/bash rix,

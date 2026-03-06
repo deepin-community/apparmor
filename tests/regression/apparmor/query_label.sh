@@ -16,8 +16,13 @@ pwd=`cd $pwd ; /bin/pwd`
 
 bin=$pwd
 
-. $bin/prologue.inc
+. "$bin/prologue.inc"
+. "$bin/net_supports.inc"
 requires_query_interface
+
+# with af_unix v9, dbus requires policy encode support for unix mediation
+# or it will lie. Saying that it is supported but always returning allowed
+requires supports_unix_rules
 
 settest query_label
 
@@ -40,11 +45,12 @@ dbus_svc_query="session com.foo.baz"
 # granting anything specified in $@.
 genqueryprofile()
 {
-	genprofile --stdin <<EOF
+	genprofile image=$test --stdin <<EOF
 $test {
   file,
 }
-
+EOF
+	genprofile --append image=$qprof --stdin <<EOF
 $qprof {
   $@
 }
@@ -212,6 +218,16 @@ if [ "$(kernel_features dbus)" = "true" ]; then
     querytest "QUERY dbus (svc receive)" fail $dbus_svc_query
 else
     echo "	required feature dbus missing, skipping dbus queries ..."
+fi
+
+CURRENT_VERSION=$(uname -r | cut -d'.' -f-2)
+if (( $(echo $CURRENT_VERSION 4.4 | awk '{if ($1 < $2) print 1;}') )); then
+    # The AppArmor query interface did not originally support queries for file
+    # rules. That support was added on version 4.4 but there is no feature file
+    # to examine in apparmorfs to determine if the current kernel supports queries
+    # for file rules.
+    echo "      WARNING: kernel does not support file queries, skipping tests ..."
+    exit
 fi
 
 genqueryprofile "file,"

@@ -1,8 +1,8 @@
 # We don't build these libraries
 apparmor source: package-does-not-install-examples [libraries/libapparmor/swig/perl/examples/]
 apparmor source: package-does-not-install-examples [libraries/libapparmor/swig/ruby/examples/]
-# Source is the corresponding .pod file
-apparmor source: source-is-missing [changehat/mod_apparmor/mod_apparmor.8.html]
-apparmor source: source-is-missing [parser/apparmor.d.5.html]
-apparmor source: source-is-missing [parser/apparmor_parser.8.html]
-apparmor source: source-is-missing [utils/aa-unconfined.8.html]
+# The code correctly handles the case when cgitb is not available.
+apparmor source: uses-deprecated-python-stdlib cgitb (*) [utils/apparmor/fail.py:*]
+# Using dgit-maint-merge(7) without quilt fixup
+apparmor source: direct-changes-in-diff-but-no-patch-system *
+apparmor source: older-source-format 1.0

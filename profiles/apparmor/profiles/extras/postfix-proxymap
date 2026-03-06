@@ -10,19 +10,20 @@
 #
 # ------------------------------------------------------------------
 
-abi <abi/3.0>,
+abi <abi/4.0>,
 
 include <tunables/global>
 
-profile postfix-proxymap /usr/lib/postfix/{bin/,sbin/,}proxymap {
+profile postfix-proxymap /usr/lib{,exec}/postfix/{bin/,sbin/,}proxymap flags=(attach_disconnected.path=/apparmor/disconnected/) {
   include <abstractions/base>
   include <abstractions/nameservice>
-  include <abstractions/openssl>
   include <abstractions/postfix-common>
 
+  /apparmor/disconnected/run/mysql/mysql.sock w,
+
   /etc/my.cnf r,
-  /usr/lib/postfix/{bin/,sbin/,}proxymap     mrix,
-  /{var/spool/postfix/,}private/proxymap     rw,
+  /usr/lib{,exec}/postfix/{bin/,sbin/,}proxymap     mrix,
+  /{var/spool/postfix/,}private/proxymap            rw,
 
   # Site-specific additions and overrides. See local/README for details.
   include if exists <local/postfix-proxymap>

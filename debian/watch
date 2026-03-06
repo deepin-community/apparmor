@@ -1,4 +1,5 @@
-version=4
-opts=pgpsigurlmangle=s/$/.asc/ \
-https://launchpad.net/apparmor/+download \
-.*/apparmor-(3\.0\.\d[^\s/]*)\.(?:tar\.xz|txz|tar\.bz2|tbz2|tar\.gz|tgz)
+Version: 5
+
+Mode: git
+Source: https://gitlab.com/apparmor/apparmor.git
+Matching-Pattern: refs/tags/v@STABLE_VERSION@

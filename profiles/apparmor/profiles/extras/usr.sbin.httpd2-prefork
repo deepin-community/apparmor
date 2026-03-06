@@ -9,7 +9,7 @@
 # ------------------------------------------------------------------
 # vim:syntax=apparmor
 
-abi <abi/3.0>,
+abi <abi/4.0>,
 
 include <tunables/global>
 
@@ -20,7 +20,6 @@ include <tunables/global>
   include <abstractions/kerberosclient>
   include <abstractions/nameservice>
   include <abstractions/perl>
-  include <abstractions/openssl>
 
   capability kill,
   capability net_bind_service,

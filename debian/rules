@@ -2,7 +2,6 @@
 
 include /usr/share/dpkg/architecture.mk
 include /usr/share/dpkg/pkg-info.mk
-include /usr/share/dpkg/architecture.mk
 
 export DEB_BUILD_MAINT_OPTIONS = hardening=+bindnow optimize=+lto
 
@@ -47,28 +46,34 @@ override_dh_auto_build:
 		cp -a $(CURDIR)/utils $(CURDIR)/utils.$$py && \
 		(cd utils.$$py && PYTHON=/usr/bin/$$py $(MAKE)) ; \
 	done
-ifneq (,$(filter $(DEB_HOST_ARCH_OS), kfreebsd knetbsd hurd ))
-	cd binutils && $(MAKE) indep
-	cd parser && $(MAKE) indep
-else
 	dh_auto_build --sourcedirectory=binutils -- V=1
 	dh_auto_build --sourcedirectory=parser -- V=1
-endif
 	cd profiles && $(MAKE)
 	dh_auto_build --sourcedirectory=changehat/pam_apparmor
 
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
-ifeq (,$(filter $(DEB_HOST_ARCH_OS), kfreebsd knetbsd hurd ))
-	dh_auto_test -Dbinutils -- V=1
-	dh_auto_test -Dparser -- V=1
-endif
 	dh_auto_test -Dlibraries/libapparmor -- V=1
+	# Doesn't make sense to run utils tests without Python version
+	#dh_auto_test -Dutils -- V=1
+
+	# Utils test needs to set PYTHON_VERSIONS and PYTHON
+	# Hacky workaround since utils make check uses a version of pyalldo
+	# and we need to specify a different libapparmor CPython module for each
+	# Also set APPARMOR_NOTIFY to use our Python version
 	set -e; for py in $(shell py3versions -s) ; do \
 		PYTHON=/usr/bin/$$py dh_auto_test \
 			-D libraries/libapparmor.$$py -- PYTHON=/usr/bin/$$py; \
+		LIBAPPARMOR_BASEDIR=../../libraries/libapparmor.$$py\
+			PYTHON_VERSIONS=$$py PYTHON=/usr/bin/$$py\
+			dh_auto_test \
+			-D utils.$$py/ -- LIBAPPARMOR_BASEDIR=../../libraries/libapparmor.$$py\
+			PYTHON_VERSIONS=$$py PYTHON=/usr/bin/$$py\
+			PYFLAKES=:;\
 	done
+	dh_auto_test -Dbinutils -- V=1
+	dh_auto_test -Dparser -- V=1
 endif
 
 
@@ -105,21 +110,6 @@ override_dh_auto_install:
 	done
 
 	# Parser
-ifneq (,$(filter $(DEB_HOST_ARCH_OS), kfreebsd knetbsd hurd ))
-	cd binutils && $(MAKE) \
-	    DESTDIR=$(CURDIR)/debian/tmp \
-	    install-indep
-
-	install -D -m 755 $(CURDIR)/debian/non-linux/fake_apparmor_util \
-		$(CURDIR)/debian/tmp/usr/sbin/apparmor_parser
-	install -D -m 755 $(CURDIR)/debian/non-linux/fake_apparmor_util \
-		$(CURDIR)/debian/tmp/usr/bin/aa-enabled
-	install -D -m 755 $(CURDIR)/debian/non-linux/fake_apparmor_util \
-		$(CURDIR)/debian/tmp/usr/bin/aa-exec
-	cd parser && $(MAKE) \
-	    DESTDIR=$(CURDIR)/debian/tmp \
-	    install-indep
-else
 	cd binutils && $(MAKE) \
 	    DESTDIR=$(CURDIR)/debian/tmp \
 	    install
@@ -129,7 +119,6 @@ else
 	    SBINDIR=$(CURDIR)/debian/tmp/usr/sbin \
 	    APPARMOR_BIN_PREFIX=$(CURDIR)/debian/tmp/usr/lib/apparmor \
 	    install
-endif
 
 	# Changehat via libapparmor
 	cd libraries/libapparmor && $(MAKE) \
@@ -142,6 +131,8 @@ endif
 		$(MAKE) -C libraries/libapparmor.$$py \
 		DESTDIR=$(CURDIR)/debian/tmp install; \
 	done
+	# Remove __pycache__ directory
+	rm -r $(CURDIR)/debian/tmp/usr/lib/python3/dist-packages/__pycache__
 
 	# Changehat via mod_apparmor
 	cd changehat/mod_apparmor && $(MAKE) \

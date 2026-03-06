@@ -31,7 +31,7 @@
 # Use at your own risk. This profile was developed as an interim workaround for
 # LP: #851986 until AppArmor utilizes proper environment filtering.
 
-  abi <abi/3.0>,
+  abi <abi/4.0>,
 
 profile sanitized_helper {
   include <abstractions/base>
@@ -82,6 +82,10 @@ profile sanitized_helper {
   /opt/brave.com/brave{,-beta,-dev,-nightly}/brave Pixr,
   /opt/brave.com/brave{,-beta,-dev,-nightly}/chrome_crashpad_handler Pixr,
   /opt/brave.com/brave{,-beta,-dev,-nightly}/{,**/}lib*.so{,.*} m,
+
+  # Allow running snap applications
+  # https://bugs.launchpad.net/apparmor/+bug/2095872
+  /usr/bin/snap ux,
 
   # Full access
   / r,

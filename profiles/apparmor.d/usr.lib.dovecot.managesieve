@@ -10,7 +10,7 @@
 # ------------------------------------------------------------------
 # vim: ft=apparmor
 
-abi <abi/3.0>,
+abi <abi/4.0>,
 
 include <tunables/global>
 include <tunables/dovecot>
@@ -28,6 +28,7 @@ profile dovecot-managesieve /usr/lib*/dovecot/managesieve {
   @{DOVECOT_MAILSTORE}/** rwkl,
 
   /etc/dovecot/** r,
+  owner /tmp/doveconf.* rw,
   /usr/bin/doveconf rix,
   /usr/lib*/dovecot/managesieve mrix,
 

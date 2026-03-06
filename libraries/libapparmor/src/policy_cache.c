@@ -2,18 +2,34 @@
  *   Copyright (c) 2014-2017
  *   Canonical, Ltd. (All rights reserved)
  *
- *   This program is free software; you can redistribute it and/or
- *   modify it under the terms of version 2 of the GNU General Public
- *   License published by the Free Software Foundation.
+ * Due to historical reasons the code is this file is dual licensed
+ * under GNU Lesser General Public License, version 2.1 and version 2
+ * of the GNU General Public License. Both included below
  *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ * The libapparmor library is licensed under the terms of the GNU
+ * Lesser General Public License, version 2.1. Please see the file
+ * COPYING.LGPL.
  *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, contact Novell, Inc. or Canonical
- *   Ltd.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of version 2 of the GNU General Public
+ * License published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, contact Novell, Inc. or Canonical
+ * Ltd.
  */
 
 #include <dirent.h>
@@ -147,36 +163,6 @@ repeat:
 	return path;
 }
 
-static int cache_check_features(int dirfd, const char *cache_name,
-				aa_features *features)
-{
-	aa_features *local_features = NULL;
-	autofree char *name = NULL;
-	bool rc;
-	int len;
-
-	len = asprintf(&name, "%s/%s", cache_name, CACHE_FEATURES_FILE);
-	if (len == -1) {
-		errno = ENOMEM;
-		return -1;
-	}
-
-	/* verify that cache dir .features matches */
-	if (aa_features_new(&local_features, dirfd, name)) {
-		PDEBUG("could not setup new features object for dirfd '%d' '%s'\n", dirfd, name);
-		return -1;
-	}
-
-	rc = aa_features_is_equal(local_features, features);
-	aa_features_unref(local_features);
-	if (!rc) {
-		errno = EEXIST;
-		return -1;
-	}
-
-	return 0;
-}
-
 static int create_cache(aa_policy_cache *policy_cache, aa_features *features)
 {
 	if (aa_policy_cache_remove(policy_cache->dirfd[0], "."))
@@ -194,8 +180,8 @@ static int create_cache(aa_policy_cache *policy_cache, aa_features *features)
 static int init_cache_features(aa_policy_cache *policy_cache,
 			       aa_features *kernel_features, bool create)
 {
-	if (cache_check_features(policy_cache->dirfd[0], ".",
-				 kernel_features)) {
+	if (aa_features_check(policy_cache->dirfd[0], ".",
+			      kernel_features)) {
 		/* EEXIST must come before ENOENT for short circuit eval */
 		if (!create || errno == EEXIST || errno != ENOENT)
 			return -1;
@@ -231,13 +217,13 @@ static int cache_miss_cb(int dirfd, const struct dirent *ent, void *arg)
 		errno = ENOMEM;
 		return -1;
 	}
-	if (!cache_check_features(dirfd, cache_name, data->features) || errno == ENOENT) {
+	if (!aa_features_check(dirfd, cache_name, data->features) || errno == ENOENT) {
 		/* found cache dir matching pattern */
 		data->cache_name = cache_name;
 		/* return 1 to stop iteration and signal dir found */
 		return 1;
 	}  else if (errno != EEXIST) {
-		PDEBUG("cache_check_features() failed for dirfd '%d' '%s'\n", dirfd, cache_name);
+		PDEBUG("aa_features_check() failed for dirfd '%d' '%s'\n", dirfd, cache_name);
 		free(cache_name);
 		return -1;
 	}
@@ -273,12 +259,12 @@ static int cache_dir_from_path_and_features(char **cache_path,
 	if (len == -1)
 		return -1;
 
-	if (!cache_check_features(dirfd, cache_dir, features) || errno == ENOENT) {
+	if (!aa_features_check(dirfd, cache_dir, features) || errno == ENOENT) {
 		PDEBUG("cache_dir_from_path_and_features() found '%s'\n", cache_dir);
 		*cache_path = cache_dir;
 		return 0;
 	} else if (errno != EEXIST) {
-		PDEBUG("cache_check_features() failed for dirfd '%d' %s\n", dirfd, cache_dir);
+		PDEBUG("aa_features_check() failed for dirfd '%d' %s\n", dirfd, cache_dir);
 		free(cache_dir);
 		return -1;
 	}

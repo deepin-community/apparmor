@@ -91,6 +91,10 @@ debian/apparmor/bin.bar etc/apparmor.d
 #
 #VERSION#
 
+# See /usr/share/doc/debhelper/PROGRAMMING.md.gz
+#
+# INTROSPECTABLE: CONFIG-FILES NONE
+
 init(options => {
 	"profile-name=s" => \$dh{PROFILE_NAME},
 	"manifest-file=s" => \$dh{AA_MANIFEST},

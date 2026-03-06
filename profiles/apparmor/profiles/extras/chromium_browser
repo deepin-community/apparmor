@@ -10,11 +10,11 @@
 # ------------------------------------------------------------------
 # Author: Jamie Strandboge <jamie@canonical.com>
 
-abi <abi/3.0>,
+abi <abi/4.0>,
 
-#include <tunables/global>
+include <tunables/global>
 
-@{chromium} = chromium{,-browser}
+@{chromium} = {,ungoogled-}chromium{,-browser}
 
 # We need 'flags=(attach_disconnected)' in newer chromium versions
 profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconnected) {
@@ -22,10 +22,13 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
   include <abstractions/cups-client>
   include <abstractions/dbus-session>
   include <abstractions/dbus-strict>
+  include <abstractions/fonts>
   include <abstractions/gnome>
   include <abstractions/ibus>
+  include <abstractions/mesa>
   include <abstractions/nameservice>
   include <abstractions/user-tmp>
+  include <abstractions/vulkan>
 
   # This include specifies which ubuntu-browsers.d abstractions to use. Eg, if
   # you want access to productivity applications, adjust the following file
@@ -35,6 +38,8 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
   capability sys_admin,
   capability sys_chroot,
   capability sys_ptrace,
+
+  userns,
 
   # UPower
   # Not sure why these are needed, so deny for now
@@ -48,7 +53,7 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
        bus=system
        path=/org/freedesktop/UPower/devices/*
        interface=org.freedesktop.DBus.Properties
-       member=Get
+       member={Get,GetAll}
        peer=(label=unconfined),
   deny dbus (send)
        bus=system
@@ -57,43 +62,84 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
        member={EnumerateDevices,GetDisplayDevice}
        peer=(label=unconfined),
 
-  # ???
-  deny dbus (send)
+  dbus (send)
        bus=system
        path=/org/freedesktop/hostname1
        interface=org.freedesktop.DBus.Properties
        member=GetAll
        peer=(label=unconfined),
 
+  dbus (receive)
+       bus=system
+       path=/org/freedesktop/login1
+       interface=org.freedesktop.login1.Manager
+       member={SessionNew,SessionRemoved}
+       peer=(label=unconfined),
+
+  dbus (send)
+       bus=session
+       path=/org/freedesktop/DBus
+       interface=org.freedesktop.DBus
+       member={AddMatch,GetNameOwner,Hello,NameHasOwner,RemoveMatch,StartServiceByName}
+       peer=(name=org.freedesktop.DBus),
+
+  dbus (send)
+       bus=session
+       path=/org/freedesktop/portal/desktop
+       interface=org.freedesktop.DBus.Properties
+       member=Get
+       peer=(name=org.freedesktop.portal.Desktop),
+
+  dbus (send)
+       bus=session
+       path=/org/freedesktop/Notifications
+       interface=org.freedesktop.Notifications
+       member={GetCapabilities,GetServerInformation}
+       peer=(name=org.freedesktop.Notifications),
+
+  dbus (send)
+       bus=session
+       path=/org/gtk/vfs/mounttracker
+       interface=org.gtk.vfs.MountTracker
+       member=ListMountableInfo
+       peer=(label=unconfined),
+
   # Networking
   network inet stream,
   network inet6 stream,
-  @{PROC}/[0-9]*/net/if_inet6 r,
-  @{PROC}/[0-9]*/net/ipv6_route r,
+  @{PROC}/@{pid}/net/if_inet6 r,
+  @{PROC}/@{pid}/net/ipv6_route r,
 
   # Should maybe be in abstractions
+  /etc/fstab r,
   /etc/mime.types r,
   /etc/mailcap r,
   /etc/mtab r,
   /etc/xdg/xubuntu/applications/defaults.list r,
+  owner @{HOME}/.cache/thumbnails/** r,
   owner @{HOME}/.local/share/applications/defaults.list r,
   owner @{HOME}/.local/share/applications/mimeinfo.cache r,
   /tmp/.X[0-9]*-lock r,
 
   @{PROC}/self/exe ixr,
-  @{PROC}/[0-9]*/fd/ r,
+  @{PROC}/filesystems r,
+  @{PROC}/pressure/{cpu,io,memory} r,
   @{PROC}/vmstat r,
   @{PROC}/ r,
-  @{PROC}/[0-9]*/task/[0-9]*/stat r,
-  owner @{PROC}/[0-9]*/cmdline r,
-  owner @{PROC}/[0-9]*/io r,
-  owner @{PROC}/[0-9]*/setgroups w,
-  owner @{PROC}/[0-9]*/{uid,gid}_map w,
-  @{PROC}/[0-9]*/smaps r,
-  @{PROC}/[0-9]*/stat r,
-  @{PROC}/[0-9]*/statm r,
-  owner @{PROC}/[0-9]*/task/[0-9]*/status r,
-  deny @{PROC}/[0-9]*/oom_{,score_}adj w,
+  owner @{PROC}/@{pid}/task/@{tid}/stat r,
+  owner @{PROC}/@{pid}/clear_refs w,
+  owner @{PROC}/@{pid}/cmdline r,
+  owner @{PROC}/@{pid}/io r,
+  owner @{PROC}/@{pid}/mountinfo r,
+  owner @{PROC}/@{pid}/setgroups w,
+  owner @{PROC}/@{pid}/{uid,gid}_map w,
+  owner @{PROC}/@{pid}/smaps r,
+  @{PROC}/@{pid}/stat r,
+  @{PROC}/@{pid}/statm r,
+  owner @{PROC}/@{pid}/status r,
+  owner @{PROC}/@{pid}/task/@{tid}/status r,
+  deny @{PROC}/@{pid}/oom_{,score_}adj w,
+  @{PROC}/sys/fs/inotify/max_user_watches r,
   @{PROC}/sys/kernel/yama/ptrace_scope r,
   @{PROC}/sys/net/ipv4/tcp_fastopen r,
 
@@ -103,26 +149,38 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
   /sys/devices/**/uevent r,
   /sys/devices/system/cpu/cpufreq/policy*/cpuinfo_max_freq r,
   /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_max_freq r,
+  /sys/devices/system/cpu/kernel_max r,
+  /sys/devices/system/cpu/possible r,
+  /sys/devices/system/cpu/present r,
   /sys/devices/system/node/node*/meminfo r,
-  /sys/devices/pci[0-9]*/**/class r,
-  /sys/devices/pci[0-9]*/**/config r,
-  /sys/devices/pci[0-9]*/**/device r,
-  /sys/devices/pci[0-9]*/**/irq r,
-  /sys/devices/pci[0-9]*/**/resource r,
-  /sys/devices/pci[0-9]*/**/revision r,
-  /sys/devices/pci[0-9]*/**/subsystem_device r,
-  /sys/devices/pci[0-9]*/**/subsystem_vendor r,
-  /sys/devices/pci[0-9]*/**/vendor r,
-  /sys/devices/pci[0-9]*/**/removable r,
-  /sys/devices/pci[0-9]*/**/block/**/size r,
+  /sys/devices/@{pci_bus}/**/bConfigurationValue r,
+  /sys/devices/@{pci_bus}/**/boot_vga r,
+  /sys/devices/@{pci_bus}/**/busnum r,
+  /sys/devices/@{pci_bus}/**/class r,
+  /sys/devices/@{pci_bus}/**/config r,
+  /sys/devices/@{pci_bus}/**/descriptors r,
+  /sys/devices/@{pci_bus}/**/device r,
+  /sys/devices/@{pci_bus}/**/devnum r,
+  /sys/devices/@{pci_bus}/**/irq r,
+  /sys/devices/@{pci_bus}/**/manufacturer r,
+  /sys/devices/@{pci_bus}/**/product r,
+  /sys/devices/@{pci_bus}/**/resource r,
+  /sys/devices/@{pci_bus}/**/revision r,
+  /sys/devices/@{pci_bus}/**/serial r,
+  /sys/devices/@{pci_bus}/**/subsystem_device r,
+  /sys/devices/@{pci_bus}/**/subsystem_vendor r,
+  /sys/devices/@{pci_bus}/**/vendor r,
+  /sys/devices/@{pci_bus}/**/removable r,
+  /sys/devices/@{pci_bus}/**/block/**/size r,
   /sys/devices/virtual/block/**/removable r,
   /sys/devices/virtual/block/**/size r,
   /sys/devices/virtual/tty/tty*/active r,
   # This is requested, but doesn't seem to actually be needed so deny for now
   deny /run/udev/data/** r,
+  deny /sys/devices/virtual/dmi/id/* r,
 
   # Needed for the crash reporter
-  owner @{PROC}/[0-9]*/auxv r,
+  owner @{PROC}/@{pid}/auxv r,
 
   # chromium mmaps all kinds of things for speed.
   /etc/passwd m,
@@ -130,13 +188,13 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
   /usr/share/fonts/**/*.pfb m,
   /usr/share/mime/mime.cache m,
   /usr/share/icons/**/*.cache m,
-  owner /{dev,run}/shm/pulse-shm* m,
+  owner /{dev,run,var/run}/shm/pulse-shm* m,
   owner @{HOME}/.local/share/mime/mime.cache m,
   owner /tmp/** m,
 
   @{PROC}/sys/kernel/shmmax r,
-  owner /{dev,run}/shm/{,.}org.chromium.* mrw,
-  owner /{,var/}run/shm/shmfd-* mrw,
+  owner /{dev,run,var/run}/shm/{,.}org.chromium.* mrw,
+  owner /{dev,run,var/run}/shm/shmfd-* mrw,
 
   /usr/lib/@{chromium}/*.pak mr,
   /usr/lib/@{chromium}/locales/* mr,
@@ -147,8 +205,8 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
 
   # Allow ptracing ourselves and our helpers
   ptrace (trace) peer=@{profile_name},
-  ptrace (trace) peer=@{profile_name}//lsb_release,
-  ptrace (trace) peer=@{profile_name}//xdgsettings,
+  ptrace (read, trace) peer=@{profile_name}//xdgsettings,
+  ptrace (read, trace) peer=lsb_release,
 
   # Make browsing directories work
   / r,
@@ -181,10 +239,9 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
   /etc/firefox/profile/bookmarks.html r,
   owner @{HOME}/.mozilla/** k,
 
-  # Chromium Policies
-  /etc/@{chromium}/policies/** r,
-
   # Chromium configuration
+  /etc/@{chromium}/** r,
+  # Note: "~/.pki/{,nssdb/} w" is denied by private-files abstraction
   owner @{HOME}/.pki/nssdb/* rwk,
   owner @{HOME}/.cache/chromium/ rw,
   owner @{HOME}/.cache/chromium/** rw,
@@ -195,22 +252,31 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
   owner @{HOME}/.config/chromium/Dictionaries/*.bdic mr,
   owner @{HOME}/.config/chromium/**/Dictionaries/*.bdic mr,
 
-  # Allow transitions to ourself and our sandbox
+  # Widevine CDM plugin
+  owner @{HOME}/.config/chromium/WidevineCdm/*/_platform_specific/*/libwidevinecdm.so mr,
+
+  # Allow transitions to ourself, our sandbox, and crash handler
   /usr/lib/@{chromium}/@{chromium} ix,
   /usr/lib/@{chromium}/chrome-sandbox cx -> sandbox,
+  /usr/lib/@{chromium}/chrome_crashpad_handler Cxr -> crashpad_handler,
 
-  # Allow communicating with sandbox
+  # Allow communicating with sandbox and crash handler
   unix (receive, send) peer=(label=@{profile_name}//sandbox),
+  unix (receive, send) peer=(label=@{profile_name}//crashpad_handler),
+  signal (receive) set=(cont) peer=@{profile_name}//crashpad_handler,
 
   /{usr/,}bin/ps Uxr,
   /usr/lib/@{chromium}/xdg-settings Cxr -> xdgsettings,
   /usr/bin/xdg-settings Cxr -> xdgsettings,
-  /usr/bin/lsb_release Cxr -> lsb_release,
+  /usr/bin/lsb_release Pxr -> lsb_release,
 
   # GSettings
-  owner /{,var/}run/user/*/dconf/     rw,
-  owner /{,var/}run/user/*/dconf/user rw,
+  owner @{run}/user/[0-9]*/dconf/     rw,
+  owner @{run}/user/[0-9]*/dconf/user rw,
   owner @{HOME}/.config/dconf/user r,
+
+  # GVfs
+  owner @{run}/user/[0-9]*/gvfsd/socket-* rw,
 
   # Magnet links
   /usr/bin/gio ixr,
@@ -228,7 +294,7 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
     /etc/ld.so.cache r,
     /etc/xdg/** r,
     /usr/bin/xdg-settings r,
-    /{usr/,}lib{,32,64}/@{chromium}/xdg-settings r,
+    /usr/lib/@{chromium}/xdg-settings r,
     /usr/share/applications/*.desktop r,
     /usr/share/applications/*.list r,
 
@@ -254,24 +320,6 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
     owner @{HOME}/.local/share/applications/mimeapps.list* rw,
   }
 
-  profile lsb_release {
-    include <abstractions/base>
-    include <abstractions/python>
-    /usr/bin/lsb_release r,
-    /{usr/,}bin/dash ixr,
-    /usr/bin/dpkg-query ixr,
-    /usr/include/python2.[4567]/pyconfig.h r,
-    /etc/lsb-release r,
-    /etc/debian_version r,
-    /etc/dpkg/origins/** r,
-    /usr/share/distro-info/** r,
-    /var/lib/dpkg/** r,
-
-    /usr/local/lib/python3.{1,}[0-9]/dist-packages/ r,
-    /usr/bin/ r,
-    /usr/bin/python3.{1,}[0-9] mr,
-  }
-
   profile sandbox {
     # Be fanatical since it is setuid root and don't use an abstraction
     /{usr/,}lib{,32,64}/libgcc_s.so* mr,
@@ -280,10 +328,18 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
     /{usr/,}lib/@{multiarch}/libm-*.so* mr,
     /{usr/,}lib{,32,64}/libpthread-*.so* mr,
     /{usr/,}lib/@{multiarch}/libpthread-*.so* mr,
+    /{usr/,}lib{,32,64}/libatomic.so* mr,
+    /{usr/,}lib/@{multiarch}/libatomic.so* mr,
+    /{usr/,}lib{,32,64}/libc.so.* mr,
+    /{usr/,}lib/@{multiarch}/libc.so.* mr,
     /{usr/,}lib{,32,64}/libc-*.so* mr,
     /{usr/,}lib/@{multiarch}/libc-*.so* mr,
+    /{usr/,}lib{,32,64}/libdl-*.so* mr,
+    /{usr/,}lib/@{multiarch}/libdl-*.so* mr,
     /{usr/,}lib{,32,64}/libld-*.so* mr,
     /{usr/,}lib/@{multiarch}/libld-*.so* mr,
+    /{usr/,}lib{,32,64}/librt-*.so* mr,
+    /{usr/,}lib/@{multiarch}/librt-*.so* mr,
     /{usr/,}lib{,32,64}/ld-*.so* mr,
     /{usr/,}lib{,32,64}/@{multiarch}/ld-*.so* mr,
     /{usr/,}lib{,32,64}/tls/*/{cmov,nosegneg}/libm-*.so* mr,
@@ -320,12 +376,12 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
     unix (getattr, getopt, setopt, shutdown) addr=none,
 
     @{PROC}/ r,
-    @{PROC}/[0-9]*/ r,
-    @{PROC}/[0-9]*/fd/ r,
-    deny @{PROC}/[0-9]*/oom_adj w,
-    deny @{PROC}/[0-9]*/oom_score_adj w,
-    @{PROC}/[0-9]*/status r,
-    @{PROC}/[0-9]*/task/[0-9]*/stat r,
+    @{PROC}/@{pid}/ r,
+    @{PROC}/@{pid}/fd/ r,
+    deny @{PROC}/@{pid}/oom_adj w,
+    deny @{PROC}/@{pid}/oom_score_adj w,
+    @{PROC}/@{pid}/status r,
+    @{PROC}/@{pid}/task/@{tid}/stat r,
 
     /usr/bin/@{chromium} r,
     /usr/lib/@{chromium}/@{chromium} Px,
@@ -336,7 +392,32 @@ profile chromium_browser /usr/lib/@{chromium}/@{chromium} flags=(attach_disconne
     owner /tmp/** rw,
   }
 
+  profile crashpad_handler {
+    include <abstractions/base>
+
+    capability sys_ptrace,
+
+    ptrace (read, trace) peer=chromium_browser,
+
+    signal (send) set=(cont) peer=chromium_browser,
+
+    unix (receive, send) peer=(label=chromium_browser),
+
+    /usr/lib/@{chromium}/chrome_crashpad_handler ixr,
+
+    /sys/devices/system/cpu/cpufreq/policy[0-9]*/scaling_{cur,max}_freq r,
+
+    @{PROC}/sys/kernel/yama/ptrace_scope r,
+
+    owner @{PROC}/@{pid}/fd/ r,
+    owner @{PROC}/@{pid}/mem r,
+    owner @{PROC}/@{pid}/stat r,
+    owner @{PROC}/@{pid}/task/ r,
+    owner @{PROC}/@{pid}/task/@{tid}/comm r,
+
+    owner @{HOME}/.config/chromium/Crash?Reports/** rwk,
+  }
+
   # Site-specific additions and overrides. See local/README for details.
   include if exists <local/chromium_browser>
-
 }
