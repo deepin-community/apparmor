@@ -51,9 +51,6 @@ static void print_error(int error)
 	case -ESPIPE:
 		PERROR(_("Bad write position\n"));
 		break;
-	case -EPERM:
-		PERROR(_("Permission denied\n"));
-		break;
 	case -ENOMEM:
 		PERROR(_("Out of memory\n"));
 		break;
@@ -75,8 +72,13 @@ static void print_error(int error)
 	case -ENOENT:
 		PERROR(_("Profile doesn't exist\n"));
 		break;
+	case -EPERM:
+		PERROR(_("%s: Permission denied. You need policy admin privileges to manage profiles.\n\n"),
+		       progname);
+		break;
 	case -EACCES:
-		PERROR(_("Permission denied; attempted to load a profile while confined?\n"));
+		PERROR(_("%s: Access denied. You need policy admin privileges to manage profiles.\n\n"),
+		       progname);
 		break;
 	default:
 		PERROR(_("Unknown error (%d): %s\n"), -error, strerror(-error));
@@ -321,10 +323,54 @@ static inline void sd_write_listend(std::ostringstream &buf)
 	sd_write8(buf, SD_LISTEND);
 }
 
-void sd_serialize_dfa(std::ostringstream &buf, void *dfa, size_t size)
+void sd_serialize_perm(std::ostringstream &buf, aa_perms &perms)
 {
-	if (dfa)
+	sd_write_uint32(buf, 0);	/* reserved */
+	sd_write_uint32(buf, perms.allow);
+	sd_write_uint32(buf, perms.deny);
+	sd_write_uint32(buf, perms.subtree);
+	sd_write_uint32(buf, perms.cond);
+	sd_write_uint32(buf, perms.kill);
+	sd_write_uint32(buf, perms.complain);
+	sd_write_uint32(buf, perms.prompt);
+	sd_write_uint32(buf, perms.audit);
+	sd_write_uint32(buf, perms.quiet);
+	sd_write_uint32(buf, perms.hide);
+	sd_write_uint32(buf, perms.xindex);
+	sd_write_uint32(buf, perms.tag);
+	sd_write_uint32(buf, perms.label);
+}
+
+void sd_serialize_permstable(std::ostringstream &buf, vector <aa_perms> &perms_table, bool filedfa)
+{
+	sd_write_struct(buf, "perms");
+	sd_write_name(buf, "version");
+	sd_write_uint32(buf, 1);
+	sd_write_array(buf, NULL, perms_table.size());
+	for (size_t i = 0; i < perms_table.size(); i++) {
+		sd_serialize_perm(buf, perms_table[i]);
+	}
+	sd_write_arrayend(buf);
+	sd_write_structend(buf);
+	/* currently only the file dfa makes use of owner conditional accept */
+	if (filedfa && perms_table.size() > 0) {
+		sd_write_name(buf, "permsv");
+		sd_write_uint32(buf, 3);
+	}
+}
+
+void sd_serialize_dfa(std::ostringstream &buf, void *dfa, size_t size,
+		      vector <aa_perms> &perms_table, bool filedfa)
+{
+	if (dfa) {
+		if (kernel_supports_permstable32 && perms_table.size() > 0) {
+			//fprintf(stderr, "writing perms table %d\n", size);
+			sd_serialize_permstable(buf, perms_table, filedfa);
+		} else {
+			//fprintf(stderr, "skipping permtable32 %d, size %d\n", kernel_supports_permstable32, perms_table.size());
+		}
 		sd_write_aligned_blob(buf, dfa, size, "aadfa");
+	}
 }
 
 void sd_serialize_rlimits(std::ostringstream &buf, struct aa_rlimits *limits)
@@ -342,9 +388,10 @@ void sd_serialize_rlimits(std::ostringstream &buf, struct aa_rlimits *limits)
 	sd_write_structend(buf);
 }
 
-void sd_serialize_xtable(std::ostringstream &buf, char **table)
+void sd_serialize_xtable(std::ostringstream &buf, const char * const *table)
 {
-	int count;
+	size_t count;
+
 	if (!table[4])
 		return;
 	sd_write_struct(buf, "xtable");
@@ -355,18 +402,30 @@ void sd_serialize_xtable(std::ostringstream &buf, char **table)
 	}
 
 	sd_write_array(buf, NULL, count);
-	for (int i = 4; i < count + 4; i++) {
-		int len = strlen(table[i]) + 1;
+	for (size_t i = 4; i < count + 4; i++) {
+		size_t len = strlen(table[i]) + 1;
 
 		/* if its a namespace make sure the second : is overwritten
-		 * with 0, so that the namespace and name are \0 seperated
+		 * with 0, so that the namespace and name are \0 separated
 		 */
 		if (*table[i] == ':') {
-			char *tmp = table[i] + 1;
+			/* don't change table */
+			char *ent = strdup(table[i]);
+			if (!ent) {
+				PERROR("Failed to allocate memory: %s\n", strerror(errno));
+				/* exiting here because there's no
+				 * error handling for serialize functions */
+				exit(errno);
+			}
+			char *tmp = ent + 1;
 			strsep(&tmp, ":");
+			sd_write_strn(buf, ent, len, NULL);
+			free(ent);
 		}
-		sd_write_strn(buf, table[i], len, NULL);
+		else
+			sd_write_strn(buf, table[i], len, NULL);
 	}
+
 	sd_write_arrayend(buf);
 	sd_write_structend(buf);
 }
@@ -409,14 +468,30 @@ void sd_serialize_profile(std::ostringstream &buf, Profile *profile,
 	/* only emit this if current kernel at least supports "create" */
 	if (perms_create) {
 		if (profile->xmatch) {
-			sd_serialize_dfa(buf, profile->xmatch, profile->xmatch_size);
+		  sd_serialize_dfa(buf, profile->xmatch, profile->xmatch_size, profile->xmatch_perms_table, false);
 			sd_write_uint32(buf, profile->xmatch_len);
 		}
 	}
 
+	/* added in 4.13, unfortunately there is no features flag */
+	if (profile->flags.disconnected_path) {
+		sd_write_string(buf, profile->flags.disconnected_path,
+				"disconnected");
+	}
+
+	if (profile->flags.signal && features_supports_flag_signal) {
+		sd_write_name(buf, "kill");
+		sd_write_uint32(buf, profile->flags.signal);
+	}
+
+	if (profile->flags.error && features_supports_flag_error) {
+		sd_write_name(buf, "error");
+		sd_write_uint32(buf, profile->flags.error);
+	}
+
 	sd_write_struct(buf, "flags");
 	/* used to be flags.debug, but that's no longer supported */
-	sd_write_uint32(buf, profile->flags.hat);
+	sd_write_uint32(buf, profile->flags.flags);
 	sd_write_uint32(buf, profile_mode_packed(profile->flags.mode));
 	sd_write_uint32(buf, profile->flags.audit);
 	sd_write_structend(buf);
@@ -473,14 +548,21 @@ void sd_serialize_profile(std::ostringstream &buf, Profile *profile,
 
 	if (profile->policy.dfa) {
 		sd_write_struct(buf, "policydb");
-		sd_serialize_dfa(buf, profile->policy.dfa, profile->policy.size);
+		sd_serialize_dfa(buf, profile->policy.dfa, profile->policy.size,
+				 profile->policy.perms_table, false);
+		if (kernel_supports_permstable32) {
+			sd_serialize_xtable(buf, profile->exec_table);
+
+		}
 		sd_write_structend(buf);
 	}
 
-	/* either have a single dfa or lists of different entry types */
-	sd_serialize_dfa(buf, profile->dfa.dfa, profile->dfa.size);
-	sd_serialize_xtable(buf, profile->exec_table);
-
+	sd_serialize_dfa(buf, profile->dfa.dfa, profile->dfa.size,
+			 profile->dfa.perms_table, true);
+	if (profile->dfa.dfa) {
+		// fprintf(stderr, "profile %s: dfa xtable\n", profile->name);
+		sd_serialize_xtable(buf, profile->exec_table);
+	}
 	sd_write_structend(buf);
 }
 

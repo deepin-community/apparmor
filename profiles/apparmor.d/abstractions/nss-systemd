@@ -9,7 +9,7 @@
 #
 # ------------------------------------------------------------------
 
-  abi <abi/3.0>,
+  abi <abi/4.0>,
 
 # libnss-systemd
   #
@@ -25,7 +25,9 @@
   @{run}/systemd/userdb/io.systemd.Home rw,               # systemd-home dirs
   @{run}/systemd/userdb/io.systemd.NameServiceSwitch rw,  # UNIX/glibc NSS
   @{run}/systemd/userdb/io.systemd.Machine rw,            # systemd-machined
+  @{run}/systemd/userdb/org.gnome.DisplayManager rw,      # GDM implements a user database for its greeter
 
   @{PROC}/sys/kernel/random/boot_id r,
+  @{PROC}/sys/net/ipv6/conf/all/disable_ipv6 r,
 
   include if exists <abstractions/nss-systemd.d>

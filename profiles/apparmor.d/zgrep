@@ -8,7 +8,7 @@
 #
 # ------------------------------------------------------------------
 
-abi <abi/3.0>,
+abi <abi/4.0>,
 
 include <tunables/global>
 
@@ -17,6 +17,8 @@ profile zgrep /usr/bin/{x,}zgrep {
   include <abstractions/bash>
 
   /dev/tty rw,
+  @{etc_ro}/nsswitch.conf  r,
+  /etc/passwd r,
   /usr/bin/{ba,da,}sh ix,
   /usr/bin/bzip2 Cx -> helper,
   /usr/bin/cat ix,
@@ -29,11 +31,13 @@ profile zgrep /usr/bin/{x,}zgrep {
   /usr/bin/rm ix,
   /usr/bin/sed Cx -> sed,
   /usr/bin/xz Cx -> helper,
-  /usr/bin/xzgrep r,
   /usr/bin/zgrep Cx -> helper,
   /usr/bin/zstd Cx -> helper,
   owner /tmp/zgrep* rw,
-  /usr/bin/zgrep r,
+  /usr/bin/{x,}zgrep r,
+
+  deny /etc/nsswitch.conf r,
+  deny /etc/passwd r,
 
   include if exists <local/zgrep>
 

@@ -10,7 +10,7 @@
 # vim:syntax=apparmor
 # Last Modified: Wed Aug 24 16:21:32 2005
 
-abi <abi/3.0>,
+abi <abi/4.0>,
 
 include <tunables/global>
 
@@ -25,6 +25,8 @@ include <tunables/global>
   include <abstractions/X>
 
   capability dac_override,
+
+  /usr/X11R6/bin/acroread mr,
 
   /{usr/,}bin/basename mixr,
   /{usr/,}bin/bash mix,

@@ -1,6 +1,6 @@
 # vim:syntax=apparmor
 
-  abi <abi/3.0>,
+  abi <abi/4.0>,
 
   # Java plugin
   owner @{HOME}/.java/deployment/deployment.properties k,
@@ -39,6 +39,7 @@
     /etc/lsb-release r,
     /etc/ssl/certs/java/* r,
     /etc/timezone r,
+    /etc/writable/timezone r,
 
     @{PROC}/@{pid}/ r,
     @{PROC}/@{pid}/fd/ r,
@@ -86,6 +87,7 @@
     /etc/lsb-release r,
     /etc/ssl/certs/java/* r,
     /etc/timezone r,
+    /etc/writable/timezone r,
 
     @{PROC}/@{pid}/ r,
     @{PROC}/@{pid}/fd/ r,

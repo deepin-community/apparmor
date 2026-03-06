@@ -93,8 +93,9 @@ aa_log_end_msg() {
 if [ -f "${APPARMOR_FUNCTIONS}" ]; then
 	. ${APPARMOR_FUNCTIONS}
 else
-	aa_log_failure_msg "Unable to find AppArmor initscript functions"
-	exit 1
+	# Unable to find AppArmor initscript functions.
+	# Probably isn't installed - so go quietly per Debian policy 9.3.2.
+	exit 0
 fi
 
 usage() {

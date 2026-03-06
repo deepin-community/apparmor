@@ -10,7 +10,7 @@
 # ------------------------------------------------------------------
 # vim: ft=apparmor
 
-abi <abi/3.0>,
+abi <abi/4.0>,
 
 include <tunables/global>
 
@@ -19,7 +19,6 @@ profile dovecot-auth /usr/lib*/dovecot/auth {
   include <abstractions/base>
   include <abstractions/mysql>
   include <abstractions/nameservice>
-  include <abstractions/openssl>
   include <abstractions/wutmp>
   include <abstractions/dovecot-common>
 

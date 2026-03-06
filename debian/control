@@ -2,9 +2,9 @@ Source: apparmor
 Maintainer: Debian AppArmor Team <pkg-apparmor-team@lists.alioth.debian.org>
 Uploaders: intrigeri <intrigeri@debian.org>
 Section: admin
-Priority: optional
 Build-Depends: apache2-dev,
                autoconf,
+               autoconf-archive,
                automake,
                bison,
                bzip2,
@@ -19,19 +19,23 @@ Build-Depends: apache2-dev,
                libpython3-all-dev,
                libpam-dev,
                libtool,
+               net-tools <!nocheck>,
                perl <!nocheck>,
                pkgconf,
                po-debconf,
                python3:any,
                python3-all:any,
                python3-all-dev:any,
+               python3-gi <!nocheck>,
+               python3-notify2 <!nocheck>,
+               python3-psutil <!nocheck>,
                python3-setuptools,
+               python3-tk <!nocheck>,
                swig
-Standards-Version: 4.6.2
+Standards-Version: 4.7.3
 Vcs-Browser: https://salsa.debian.org/apparmor-team/apparmor/tree/debian/unstable
 Vcs-Git: https://salsa.debian.org/apparmor-team/apparmor.git -b debian/unstable
 Homepage: https://apparmor.net/
-Rules-Requires-Root: no
 
 Package: apparmor
 Architecture: linux-any
@@ -139,6 +143,9 @@ Depends: python3-apparmor,
          python3-libapparmor,
          python3-notify2,
          python3-psutil,
+         python3-tk,
+         python3-ttkthemes,
+         python3-gi,
          ${misc:Depends},
          ${python3:Depends}
 Description: AppArmor notification system

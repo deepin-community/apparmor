@@ -12,7 +12,7 @@
 # processes.
 #=END
 
-# I made this a seperate test script because of the need to make a
+# I made this a separate test script because of the need to make a
 # loopfile before the tests run.
 
 pwd=`dirname $0`
@@ -20,7 +20,7 @@ pwd=`cd $pwd ; /bin/pwd`
 
 bin=$pwd
 
-. $bin/prologue.inc
+. "$bin/prologue.inc"
 
 ##
 ## A. MOUNT
@@ -32,7 +32,8 @@ mount_point2=$tmpdir/mountpoint2
 mount_bad=$tmpdir/mountbad
 loop_device="unset" 
 fstype="ext2"
-root_was_shared="no"
+
+. "$bin/mount.inc"
 
 setup_mnt() {
 	/bin/mount -n -t${fstype} ${loop_device} ${mount_point}
@@ -59,13 +60,11 @@ mount_cleanup() {
 	then
 		/sbin/losetup -d ${loop_device} &> /dev/null
 	fi
-	if [ "${root_was_shared}" = "yes" ] ; then
-		mount --make-shared /
-	fi
+	prop_cleanup
 }
 do_onexit="mount_cleanup"
 
-dd if=/dev/zero of=${mount_file} bs=1024 count=512 2> /dev/null
+fallocate -l 512K ${mount_file}
 /sbin/mkfs -t${fstype} -F ${mount_file} > /dev/null 2> /dev/null
 /bin/mkdir ${mount_point}
 /bin/mkdir ${mount_point2}
@@ -78,25 +77,8 @@ if [ ! -b /dev/loop0 ] ; then
 fi
 
 # find the next free loop device and mount it
-loop_device=$(losetup -f) || fatalerror 'Unable to find a free loop device'
-/sbin/losetup "$loop_device" ${mount_file} > /dev/null 2> /dev/null
-
-# systemd mounts / and everything under it MS_SHARED which does
-# not work with "move", so attempt to detect it, and remount /
-# MS_PRIVATE temporarily. snippet from pivot_root.sh
-FINDMNT=/bin/findmnt
-if [ -x "${FINDMNT}" ] && ${FINDMNT} -no PROPAGATION / > /dev/null 2>&1 ; then
-	if [ "$(${FINDMNT} -no PROPAGATION /)" == "shared" ] ; then
-		root_was_shared="yes"
-	fi
-elif [ "$(ps hp1  -ocomm)" = "systemd" ] ; then
-	# no findmnt or findmnt doesn't know the PROPAGATION column,
-	# but init is systemd so assume rootfs is shared
-	root_was_shared="yes"
-fi
-if [ "${root_was_shared}" = "yes" ] ; then
-	mount --make-private /
-fi
+/sbin/losetup -f ${mount_file} || fatalerror 'Unable to set up a loop device'
+loop_device="$(/sbin/losetup -n -O NAME -l -j ${mount_file})"
 
 options=(
 	# default and non-default options
@@ -275,6 +257,198 @@ test_options() {
 	# run_all_combinations_test
 }
 
+open_tree_test() {
+	desc=$1
+	qualifier=$2
+	additional_perms=$3
+	result=$4
+
+	genprofile cap:sys_admin ${qualifier}mount:ALL ${additional_perms}
+	mount ${loop_device} ${mnt_source}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount,)" ${result} open_tree ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount:-> ${mnt_target}/" ${additional_perms}
+	mount ${loop_device} ${mnt_source}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount -> ${mnt_target}/,)" ${result} open_tree ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount: options=(move) -> ${mnt_target}/" ${additional_perms}
+	mount ${loop_device} ${mnt_source}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount options=(move) -> ${mnt_target}/,)" ${result} open_tree ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount: detached -> ${mnt_target}/" ${additional_perms}
+	mount ${loop_device} ${mnt_source}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount detached -> ${mnt_target}/,)" ${result} open_tree ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount: options=(move) detached -> ${mnt_target}/" ${additional_perms}
+	mount ${loop_device} ${mnt_source}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount options=(move) detached -> ${mnt_target}/,)" ${result} open_tree ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount: \"\" -> ${mnt_target}/" ${additional_perms}
+	mount ${loop_device} ${mnt_source}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount \"\" -> ${mnt_target}/,)" ${result} open_tree ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount: options=(move) \"\" -> ${mnt_target}/" ${additional_perms}
+	mount ${loop_device} ${mnt_source}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount options=(move) \"\" -> ${mnt_target}/,)" ${result} open_tree ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+}
+
+open_tree_tests() {
+	mnt_source=$1
+	mnt_target=$2
+	fsname=$3
+	settest move_mount
+
+	if [ ! -f "$bin/move_mount" ]; then
+		echo "  WARNING: move_mount binary was not built, skipping open_tree_tests ..."
+		return
+	fi
+	# TODO: check for move_mount syscall support
+	# TODO: check that parser supports detached
+	# eg. move_mount tmpfs /tmp/move_mount_test tmpfs
+
+	success=pass
+	should_fail=fail
+	if [ "$(kernel_features mount/move_mount)" != "true" ] ; then
+		# kernels that don't have move_mount should fail on with disconnected path
+		success=fail
+		# addresses kernels that are not mediating move_mount
+		should_fail=xfail
+	fi
+
+	mount ${loop_device} ${mnt_source}
+	runchecktest "MOVE_MOUNT (unconfined open_tree)" pass open_tree ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin
+	mount ${loop_device} ${mnt_source}
+	runchecktest "MOVE_MOUNT (confined open_tree: no mount rule)" ${should_fail} open_tree ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	#              desc         qual add_perms pass/fail
+	open_tree_test " open_tree" ""   ""        pass
+	open_tree_test " open_tree deny" "qual=deny:" "" ${should_fail}
+	# now some attach_disconnected with move_mount tests
+	# attach_disconnected should not affect move_mount mediation
+	open_tree_test " open_tree att_dis" "" "flag:attach_disconnected" pass
+	open_tree_test " open_tree deny att_dis" "qual=deny:" "flag:attach_disconnected" ${should_fail}
+}
+
+fsmount_test() {
+	desc=$1
+	qualifier=$2
+	additional_perms=$3
+	result=$4
+
+	genprofile cap:sys_admin ${qualifier}mount:ALL ${additional_perms}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount,)" ${result} fsmount ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount:-> ${mnt_target}/" ${additional_perms}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount -> ${mnt_target}/,)" ${result} fsmount ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount: options=(move) -> ${mnt_target}/" ${additional_perms}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount options=(move) -> ${mnt_target}/,)" ${result} fsmount ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount: detached -> ${mnt_target}/" ${additional_perms}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount detached -> ${mnt_target}/,)" ${result} fsmount ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount: options=(move) detached -> ${mnt_target}/" ${additional_perms}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount options=(move) detached -> ${mnt_target}/,)" ${result} fsmount ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount: \"\" -> ${mnt_target}/" ${additional_perms}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount \"\" -> ${mnt_target}/,)" ${result} fsmount ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin "${qualifier}mount: options=(move) \"\" -> ${mnt_target}/" ${additional_perms}
+	runchecktest "MOVE_MOUNT (confined${desc}: mount options=(move) \"\" -> ${mnt_target}/,)" ${result} fsmount ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+}
+
+fsmount_tests() {
+	mnt_source=$1
+	mnt_target=$2
+	fsname=$3
+	settest move_mount
+
+	if [ ! -f "$bin/move_mount" ]; then
+		echo "  WARNING: move_mount binary was not built, skipping fsmount_tests ..."
+		return
+	fi
+	# TODO: check for move_mount syscall support
+	# TODO: check that parser supports detached
+	# eg. move_mount tmpfs /tmp/move_mount_test tmpfs
+
+	success=pass
+	should_fail=fail
+	if [ "$(kernel_features mount/move_mount)" != "true" ] ; then
+		# kernels that don't have move_mount should fail on with disconnected path
+		success=fail
+		# addresses kernels that are not mediating move_mount
+		should_fail=xfail
+	fi
+
+	runchecktest "MOVE_MOUNT (unconfined fsmount)" pass fsmount ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	genprofile cap:sys_admin
+	runchecktest "MOVE_MOUNT (confined fsmount: no mount rule)" ${should_fail} fsmount ${mnt_source} ${mnt_target} ${fsname}
+	remove_mnt
+
+	#            desc         qual add_perms pass/fail
+	fsmount_test " fsmount"	  ""   ""        pass
+	fsmount_test " fsmount deny" "qual=deny:" "" ${should_fail}
+	# now some attach_disconnected with move_mount tests
+	# attach_disconnected should not affect move_mount mediation
+	fsmount_test " fsmount att_dis" "" "flag:attach_disconnected" pass
+	fsmount_test " fsmount deny att_dis" "qual=deny:" "flag:attach_disconnected" ${should_fail}
+}
+
+all_rule() {
+	if [ "$(parser_supports 'all,')" != "true" ]; then
+		echo "    not supported by parser - skipping allow all,"
+		return
+	fi
+
+	settest mount
+	genprofile "all"
+
+	runchecktest "MOUNT (confined allow all)" pass mount ${loop_device} ${mount_point}
+
+	runchecktest "UMOUNT (confined allow all)" pass umount ${loop_device} ${mount_point}
+
+	runchecktest "MOUNT (confined allow all remount setup)" pass mount ${loop_device} ${mount_point}
+	runchecktest "MOUNT (confined allow all remount)" pass mount ${loop_device} ${mount_point} -o remount
+	remove_mnt
+
+	if [ ! -f "$bin/move_mount" ]; then
+		echo "  WARNING: move_mount binary was not built, skipping all_rule move_mount tests ..."
+		return
+	fi
+
+	settest move_mount
+	genprofile "all"
+
+	runchecktest "MOVE_MOUNT (confined fsmount: allow all)" pass fsmount ${loop_device} ${mount_point} ${fstype}
+	remove_mnt
+
+	mount ${loop_device} ${mnt_source}
+	runchecktest "MOVE_MOUNT (confined open_tree: allow all)" pass open_tree ${mount_point2} ${mount_point} ${fstype}
+	remove_mnt
+}
+
 # TEST 1.  Make sure can mount and umount unconfined
 runchecktest "MOUNT (unconfined)" pass mount ${loop_device} ${mount_point}
 remove_mnt
@@ -398,6 +572,12 @@ else
 	runchecktest "UMOUNT (confined cap umount:ALL)" pass umount ${loop_device} ${mount_point}
 	remove_mnt
 
+	# https://bugs.launchpad.net/ubuntu/+source/apparmor/+bug/1597017
+	# CVE-2016-1585
+	genprofile cap:sys_admin "mount:options=(rw,make-slave) -> **"
+	runchecktest "MOUNT (confined cap mount  -> mntpnt, CVE-2016-1585)" fail mount -t proc proc  ${mount_point}
+	remove_mnt
+
 	# MR:https://gitlab.com/apparmor/apparmor/-/merge_requests/1054
 	# https://bugs.launchpad.net/apparmor/+bug/2023814
 	# https://bugzilla.opensuse.org/show_bug.cgi?id=1211989
@@ -408,7 +588,23 @@ else
 	runchecktest "MOUNT (confined cap bind mount with deny mount that doesn't overlap)" pass mount ${mount_point2} ${mount_point} -o bind
 	remove_mnt
 
+	# MR:https://gitlab.com/apparmor/apparmor/-/merge_requests/1466
+	# https://bugs.launchpad.net/apparmor/+bug/2091424
+	# Specify mount propgatation with remount, a conflict that we still allow
+	# The kernel ignored the conflict and us disallowing it broke userspace
+	genprofile cap:sys_admin "mount:ALL"
+	runchecktest "MOUNT (confined cap bind mount rprivate conflict)" pass mount ${mount_point2} ${mount_point} -o bind,rprivate,noexec
+	runchecktest "MOUNT (confined cap bind mount remount rprivate conflict)" pass mount ${mount_point2} ${mount_point} -o remount,bind,rprivate,noexec
+	remove_mnt
+
 	test_options
+
+        # test new mount interface
+	fsmount_tests tmpfs ${mount_point} tmpfs
+	fsmount_tests ${loop_device} ${mount_point} ${fstype}
+	open_tree_tests ${mount_point2} ${mount_point} ${fstype}
+
+	all_rule
 fi
 
 #need tests for chroot

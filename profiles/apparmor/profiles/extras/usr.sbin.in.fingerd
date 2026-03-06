@@ -8,7 +8,7 @@
 #
 # ------------------------------------------------------------------
 
-abi <abi/3.0>,
+abi <abi/4.0>,
 
 include <tunables/global>
 
@@ -18,6 +18,8 @@ include <tunables/global>
 
   @{HOME}/.plan          r,
   @{HOME}/.project       r,
+
+  /usr/sbin/in.fingerd mr,
 
   /usr/bin/finger        mix,
   /var/log/lastlog       r,

@@ -29,7 +29,7 @@ PYMODULES = $(wildcard apparmor/*.py apparmor/rule/*.py)
 
 MANPAGES = ${TOOLS:=.8} logprof.conf.5
 
-PYFLAKES ?= pyflakes3
+PYFLAKES ?= flake8 --ignore E501,E241,W503
 
 all: docs
 	$(MAKE) -C po all
@@ -39,10 +39,10 @@ all: docs
 docs: ${MANPAGES} ${HTMLMANPAGES}
 
 # need some better way of determining this
-DESTDIR=/
-BINDIR=${DESTDIR}/usr/sbin
-CONFDIR=${DESTDIR}/etc/apparmor
-PYPREFIX=/usr
+DESTDIR?=/
+BINDIR?=${DESTDIR}/usr/sbin
+CONFDIR?=${DESTDIR}/etc/apparmor
+PYPREFIX?=/usr
 
 
 po/${NAME}.pot: ${TOOLS} ${PYMODULES}
@@ -51,14 +51,14 @@ po/${NAME}.pot: ${TOOLS} ${PYMODULES}
 .PHONY: install
 install: ${MANPAGES} ${HTMLMANPAGES}
 	install -d ${CONFDIR}
-	install -m 644 logprof.conf severity.db notify.conf ${CONFDIR}
+	install -m 644 logprof.conf severity.db notify.conf default_unconfined.template ${CONFDIR}
 	install -d ${BINDIR}
 	# aa-easyprof is installed by python-tools-setup.py
 	install -m 755 $(filter-out aa-easyprof, ${TOOLS}) ${BINDIR}
 	$(MAKE) -C po install DESTDIR=${DESTDIR} NAME=${NAME}
 	$(MAKE) install_manpages DESTDIR=${DESTDIR}
 	$(MAKE) -C vim install DESTDIR=${DESTDIR}
-	${PYTHON} ${PYSETUP} install --prefix=${PYPREFIX} --root=${DESTDIR} --version=${VERSION}
+	${PYTHON} ${PYSETUP} install --prefix=${PYPREFIX} --root=${DESTDIR}  --install-layout=deb --version=${VERSION}
 
 .PHONY: clean
 ifndef VERBOSE
